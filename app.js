@@ -1,340 +1,406 @@
 // ============================================
-// SHIELDS 2.0 - ARCHITECTURE MODULAIRE MONO-FICHIER
-// Production-Ready Badge Service with Animations
+// SHIELDS CREATIVE - Badge Service Visuel
+// Focus : Animations Avancées & Styles Modernes
 // ============================================
 
 const express = require('express');
 const app = express();
 
 // ============================================
-// SECURITY GATEWAY (Foundation Layer)
+// MODULE : STYLES VISUELS AVANCÉS
 // ============================================
-class SecurityGateway {
-  static DANGEROUS_PATTERNS = {
-    xss: /<script|javascript:|on\w+=/gi,
-    injection: /eval\(|Function\(|import\(/gi,
-    filesystem: /\.\.\/|~\/|file:/gi
+class VisualStylesModule {
+  static MODERN_STYLES = {
+    // Style Glassmorphism
+    glass: {
+      height: 32,
+      radius: 12,
+      font: 12,
+      template: (config, dims) => `
+        <defs>
+          <linearGradient id="glass-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" style="stop-color:rgba(255,255,255,0.25)"/>
+            <stop offset="100%" style="stop-color:rgba(255,255,255,0.05)"/>
+          </linearGradient>
+          <filter id="glass-blur">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="2"/>
+          </filter>
+        </defs>
+        <rect width="${dims.totalWidth}" height="32" rx="12" fill="url(#glass-grad)" 
+              stroke="rgba(255,255,255,0.2)" stroke-width="1.5" 
+              style="backdrop-filter: blur(10px);"/>
+      `
+    },
+
+    // Style Neon
+    neon: {
+      height: 28,
+      radius: 8,
+      font: 11,
+      template: (config, dims) => `
+        <defs>
+          <filter id="neon-glow">
+            <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+            <feMerge>
+              <feMergeNode in="coloredBlur"/>
+              <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+          </filter>
+        </defs>
+        <rect width="${dims.totalWidth}" height="28" rx="8" 
+              fill="none" stroke="#${config.color}" stroke-width="2"
+              filter="url(#neon-glow)" class="neon-rect"/>
+      `
+    },
+
+    // Style 3D Depth
+    depth: {
+      height: 30,
+      radius: 6,
+      font: 11,
+      template: (config, dims) => `
+        <defs>
+          <filter id="depth-shadow">
+            <feDropShadow dx="0" dy="4" stdDeviation="3" flood-opacity="0.3"/>
+          </filter>
+        </defs>
+        <rect width="${dims.totalWidth}" height="30" rx="6" 
+              fill="#${config.color}" filter="url(#depth-shadow)"/>
+        <rect width="${dims.totalWidth}" height="30" rx="6" 
+              fill="url(#depth-highlight)" opacity="0.3"/>
+      `
+    },
+
+    // Style Gradient Flow
+    gradient: {
+      height: 26,
+      radius: 13,
+      font: 11,
+      template: (config, dims) => `
+        <defs>
+          <linearGradient id="flow-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:#${config.color}">
+              <animate attributeName="stop-color" 
+                values="#${config.color};#${config.color}dd;#${config.color}" 
+                dur="3s" repeatCount="indefinite"/>
+            </stop>
+            <stop offset="100%" style="stop-color:#${config.color}66"/>
+          </linearGradient>
+        </defs>
+        <rect width="${dims.totalWidth}" height="26" rx="13" fill="url(#flow-grad)"/>
+      `
+    },
+
+    // Style Minimal Modern
+    minimal: {
+      height: 24,
+      radius: 6,
+      font: 10,
+      template: (config, dims) => `
+        <rect width="${dims.totalWidth}" height="24" rx="6" 
+              fill="#${config.color}" opacity="0.12"/>
+        <rect x="1" y="1" width="${dims.totalWidth-2}" height="22" rx="5" 
+              fill="none" stroke="#${config.color}" stroke-width="1.5"/>
+      `
+    }
   };
 
-  static validateBadgeRequest(config) {
-    const { label, message } = config;
-    
-    if (label?.length > 150 || message?.length > 150) {
-      throw new Error('Text exceeds maximum length');
-    }
-    
-    for (const [type, pattern] of Object.entries(this.DANGEROUS_PATTERNS)) {
-      if (pattern.test(label) || pattern.test(message)) {
-        throw new Error(`Security violation: ${type}`);
+  static process(styleName, config, dimensions) {
+    const style = this.MODERN_STYLES[styleName] || this.MODERN_STYLES.glass;
+    return {
+      ...style,
+      background: style.template(config, dimensions)
+    };
+  }
+}
+
+// ============================================
+// MODULE : ANIMATIONS CRÉATIVES
+// ============================================
+class CreativeAnimationsModule {
+  static ANIMATIONS = {
+    // Animation Pulse avec Scale
+    'pulse-scale': `
+      @keyframes pulse-scale {
+        0%, 100% { transform: scale(1); opacity: 1; }
+        50% { transform: scale(1.05); opacity: 0.9; }
       }
-    }
-    
-    return true;
-  }
+      svg { animation: pulse-scale 2s ease-in-out infinite; }
+    `,
 
-  static auditLog(action, params, result) {
-    console.log(`[AUDIT] ${new Date().toISOString()} - ${action}`, {
-      params: JSON.stringify(params).slice(0, 100),
-      success: result === 'success'
-    });
-  }
-}
+    // Animation Glow Intense
+    'neon-glow': `
+      @keyframes neon-pulse {
+        0%, 100% { 
+          filter: drop-shadow(0 0 5px currentColor) drop-shadow(0 0 10px currentColor); 
+        }
+        50% { 
+          filter: drop-shadow(0 0 10px currentColor) drop-shadow(0 0 20px currentColor); 
+        }
+      }
+      .neon-rect { animation: neon-pulse 1.5s ease-in-out infinite; }
+    `,
 
-// ============================================
-// MODULE 1: URL-TO-CONFIG PARSER
-// ============================================
-class URLParserModule {
-  static process(urlPath, queryParams) {
-    const cleanPath = urlPath.replace('/badge/', '');
-    const parts = cleanPath.split('-');
-    
-    return {
-      label: this._decode(parts[0] || 'badge'),
-      message: this._decode(parts[1] || 'unknown'),
-      color: parts[2] || 'blue',
-      style: queryParams.style || 'flat',
-      animate: queryParams.animate || 'none',
-      labelColor: queryParams.labelColor || '555',
-      glow: queryParams.glow === 'true',
-      logoEmoji: queryParams.logo || null
-    };
-  }
+    // Animation Wave
+    wave: `
+      @keyframes wave {
+        0% { transform: translateY(0px) rotate(0deg); }
+        25% { transform: translateY(-5px) rotate(2deg); }
+        50% { transform: translateY(0px) rotate(0deg); }
+        75% { transform: translateY(5px) rotate(-2deg); }
+        100% { transform: translateY(0px) rotate(0deg); }
+      }
+      svg { animation: wave 3s ease-in-out infinite; }
+    `,
 
-  static _decode(text) {
-    return decodeURIComponent(text.replace(/_/g, ' '));
-  }
+    // Animation Shimmer
+    shimmer: `
+      @keyframes shimmer {
+        0% { background-position: -1000px 0; }
+        100% { background-position: 1000px 0; }
+      }
+      .shimmer-overlay {
+        background: linear-gradient(90deg, 
+          transparent, 
+          rgba(255,255,255,0.5), 
+          transparent);
+        background-size: 1000px 100%;
+        animation: shimmer 3s infinite;
+      }
+    `,
 
-  static getCapabilities() {
-    return ['parse-url', 'decode-params'];
-  }
-}
+    // Animation Rotate 3D
+    'rotate-3d': `
+      @keyframes rotate-3d {
+        0% { transform: perspective(400px) rotateY(0deg); }
+        50% { transform: perspective(400px) rotateY(10deg); }
+        100% { transform: perspective(400px) rotateY(0deg); }
+      }
+      svg { animation: rotate-3d 4s ease-in-out infinite; }
+    `,
 
-// ============================================
-// MODULE 2: COLOR PROCESSOR
-// ============================================
-class ColorModule {
-  static NAMED_COLORS = {
-    brightgreen: '44cc11', green: '97CA00', yellowgreen: 'a4a61d',
-    yellow: 'dfb317', orange: 'fe7d37', red: 'e05d44',
-    blue: '007ec6', grey: '555', lightgrey: '9f9f9f',
-    success: '44cc11', important: 'fe7d37', critical: 'e05d44',
-    informational: '007ec6', inactive: '9f9f9f', blueviolet: '8b5cf6'
+    // Animation Color Shift
+    'color-shift': `
+      @keyframes color-shift {
+        0% { fill: #ef4444; }
+        20% { fill: #f59e0b; }
+        40% { fill: #10b981; }
+        60% { fill: #3b82f6; }
+        80% { fill: #8b5cf6; }
+        100% { fill: #ef4444; }
+      }
+      .animated-fill { animation: color-shift 5s linear infinite; }
+    `,
+
+    // Animation Bounce Elastic
+    'bounce-elastic': `
+      @keyframes bounce-elastic {
+        0%, 100% { transform: translateY(0) scale(1); }
+        25% { transform: translateY(-8px) scale(1.02, 0.98); }
+        50% { transform: translateY(0) scale(0.98, 1.02); }
+        75% { transform: translateY(-4px) scale(1.01, 0.99); }
+      }
+      svg { animation: bounce-elastic 2s ease-in-out infinite; }
+    `,
+
+    // Animation Typing Effect (simulation)
+    typing: `
+      @keyframes typing {
+        0% { opacity: 0; }
+        50% { opacity: 1; }
+        100% { opacity: 0; }
+      }
+      .typing-cursor { animation: typing 1s step-end infinite; }
+    `,
+
+    // Animation Glitch
+    glitch: `
+      @keyframes glitch {
+        0%, 100% { transform: translate(0); }
+        20% { transform: translate(-2px, 2px); }
+        40% { transform: translate(2px, -2px); }
+        60% { transform: translate(-2px, -2px); }
+        80% { transform: translate(2px, 2px); }
+      }
+      svg { animation: glitch 0.3s infinite; }
+    `,
+
+    // Animation Breathing
+    breathing: `
+      @keyframes breathing {
+        0%, 100% { transform: scale(1); opacity: 1; }
+        50% { transform: scale(1.03); opacity: 0.85; }
+      }
+      svg { animation: breathing 4s ease-in-out infinite; }
+    `
   };
 
-  static process(colorInput) {
-    if (!colorInput) return '007ec6';
-    
-    colorInput = colorInput.toLowerCase().replace('#', '');
-    
-    if (this.NAMED_COLORS[colorInput]) {
-      return this.NAMED_COLORS[colorInput];
-    }
-    
-    if (/^[0-9a-f]{3,6}$/i.test(colorInput)) {
-      return colorInput.length === 3 
-        ? colorInput.split('').map(c => c + c).join('')
-        : colorInput;
-    }
-    
-    return '007ec6';
+  static process(animationName) {
+    return this.ANIMATIONS[animationName] || '';
   }
 
-  static getCapabilities() {
-    return ['resolve-color', 'validate-hex'];
+  static getAvailableAnimations() {
+    return Object.keys(this.ANIMATIONS);
   }
 }
 
 // ============================================
-// MODULE 3: SVG TEMPLATE ENGINE
+// MODULE : GÉNÉRATEUR SVG CRÉATIF
 // ============================================
-class SVGTemplateModule {
-  static STYLES = {
-    flat: { height: 20, radius: 3, font: 11 },
-    'flat-square': { height: 20, radius: 0, font: 11 },
-    plastic: { height: 20, radius: 4, font: 11 },
-    'for-the-badge': { height: 28, radius: 5, font: 10 },
-    social: { height: 20, radius: 3, font: 11 }
-  };
+class CreativeSVGGenerator {
+  static generate(config) {
+    const dimensions = this._calculateDimensions(config);
+    const style = VisualStylesModule.process(config.style, config, dimensions);
+    const animation = CreativeAnimationsModule.process(config.animate);
 
-  static process(config) {
-    const style = this.STYLES[config.style] || this.STYLES.flat;
-    const dimensions = this._calculateDimensions(config, style);
-    
-    return this._generateSVG(config, style, dimensions);
-  }
-
-  static _calculateDimensions(config, style) {
-    const charWidth = style.font * 0.6;
-    const logoWidth = config.logoEmoji ? 16 : 0;
-    
-    const labelWidth = Math.max(
-      (config.label.length * charWidth) + 12 + logoWidth, 
-      45
-    );
-    const messageWidth = Math.max(
-      config.message.length * charWidth + 12, 
-      40
-    );
-    
-    return {
-      labelWidth: Math.ceil(labelWidth),
-      messageWidth: Math.ceil(messageWidth),
-      totalWidth: Math.ceil(labelWidth + messageWidth)
-    };
-  }
-
-  static _generateSVG(config, style, dims) {
-    const { label, message, labelColor, color, animate, glow, logoEmoji } = config;
-    const { labelWidth, messageWidth, totalWidth } = dims;
-    
-    const animations = this._getAnimationCSS(animate, glow);
-    const isUppercase = config.style === 'for-the-badge';
-    const displayLabel = isUppercase ? label.toUpperCase() : label;
-    const displayMessage = isUppercase ? message.toUpperCase() : message;
-    
-    return `<svg xmlns="http://www.w3.org/2000/svg" width="${totalWidth}" height="${style.height}" role="img" aria-label="${label}: ${message}">
-  ${animations ? `<style>${animations}</style>` : ''}
+    return `<svg xmlns="http://www.w3.org/2000/svg" 
+            width="${dimensions.totalWidth}" 
+            height="${style.height}" 
+            role="img" 
+            aria-label="${config.label}: ${config.message}">
+  ${animation ? `<style>${animation}</style>` : ''}
   
-  <title>${label}: ${message}</title>
+  <title>${config.label}: ${config.message}</title>
   
-  <linearGradient id="s" x2="0" y2="100%">
-    <stop offset="0" stop-color="#bbb" stop-opacity=".1"/>
-    <stop offset="1" stop-opacity=".1"/>
-  </linearGradient>
+  ${style.background}
   
-  <clipPath id="r">
-    <rect width="${totalWidth}" height="${style.height}" rx="${style.radius}" fill="#fff"/>
-  </clipPath>
-  
-  <g clip-path="url(#r)">
-    <rect width="${labelWidth}" height="${style.height}" fill="#${labelColor}"/>
-    <rect x="${labelWidth}" width="${messageWidth}" height="${style.height}" fill="#${color}" class="badge-message"/>
-    <rect width="${totalWidth}" height="${style.height}" fill="url(#s)"/>
+  <g fill="${config.textColor || '#fff'}" 
+     text-anchor="middle" 
+     font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" 
+     text-rendering="geometricPrecision" 
+     font-size="${style.font}"
+     font-weight="500">
+    
+    ${config.icon ? `<text x="20" y="${style.height/2 + 4}" font-size="16">${config.icon}</text>` : ''}
+    
+    <text x="${dimensions.labelX}" 
+          y="${style.height/2}" 
+          dominant-baseline="central"
+          class="animated-fill">
+      ${config.label}
+    </text>
+    
+    <text x="${dimensions.messageX}" 
+          y="${style.height/2}" 
+          dominant-baseline="central"
+          fill="${config.messageColor || '#fff'}"
+          font-weight="600">
+      ${config.message}
+    </text>
   </g>
   
-  <g fill="#fff" text-anchor="middle" font-family="Verdana,Geneva,DejaVu Sans,sans-serif" text-rendering="geometricPrecision" font-size="${style.font}">
-    ${logoEmoji ? `<text x="12" y="${style.height/2 + 4}" font-size="14">${logoEmoji}</text>` : ''}
-    <text aria-hidden="true" x="${labelWidth/2 + (logoEmoji ? 8 : 0)}" y="${style.height/2}" fill="#010101" fill-opacity=".3" transform="translate(0,1)">${displayLabel}</text>
-    <text x="${labelWidth/2 + (logoEmoji ? 8 : 0)}" y="${style.height/2}" transform="translate(0,-1)">${displayLabel}</text>
-    <text aria-hidden="true" x="${labelWidth + messageWidth/2}" y="${style.height/2}" fill="#010101" fill-opacity=".3" transform="translate(0,1)">${displayMessage}</text>
-    <text x="${labelWidth + messageWidth/2}" y="${style.height/2}" transform="translate(0,-1)">${displayMessage}</text>
-  </g>
+  ${config.animate === 'shimmer' ? '<rect class="shimmer-overlay" width="100%" height="100%"/>' : ''}
 </svg>`;
   }
 
-  static _getAnimationCSS(animationType, glow) {
-    const animations = {
-      pulse: `@keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.8; transform: scale(1.02); } } .badge-message { animation: pulse 2s ease-in-out infinite; }`,
-      
-      glow: `@keyframes glow { 0%, 100% { filter: drop-shadow(0 0 2px currentColor); } 50% { filter: drop-shadow(0 0 12px currentColor); } } svg { animation: glow 2s ease-in-out infinite; }`,
-      
-      gradient: `@keyframes gradient-shift { 0% { opacity: 1; } 50% { opacity: 0.85; } 100% { opacity: 1; } } .badge-message { animation: gradient-shift 3s ease infinite; }`,
-      
-      shimmer: `@keyframes shimmer { 0% { opacity: 0.3; transform: translateX(-100%); } 50% { opacity: 1; } 100% { opacity: 0.3; transform: translateX(100%); } }`,
-      
-      bounce: `@keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } } svg { animation: bounce 1s ease-in-out infinite; }`,
-      
-      'color-cycle': `@keyframes colorCycle { 0% { fill: #ef4444; } 25% { fill: #f59e0b; } 50% { fill: #10b981; } 75% { fill: #3b82f6; } 100% { fill: #ef4444; } } .badge-message { animation: colorCycle 5s linear infinite; }`
-    };
+  static _calculateDimensions(config) {
+    const baseCharWidth = 7;
+    const iconPadding = config.icon ? 30 : 20;
     
-    return animations[animationType] || null;
-  }
-
-  static getCapabilities() {
-    return ['generate-svg', 'calculate-dimensions', 'apply-animations'];
-  }
-}
-
-// ============================================
-// INTELLIGENT ORCHESTRATOR
-// ============================================
-class IntelligentOrchestrator {
-  constructor() {
-    this.modules = {
-      parser: URLParserModule,
-      color: ColorModule,
-      svg: SVGTemplateModule
-    };
-    this.cache = new Map();
-    this.metrics = { requests: 0, cached: 0, errors: 0 };
-  }
-
-  async execute(request) {
-    this.metrics.requests++;
+    const labelWidth = (config.label.length * baseCharWidth) + iconPadding;
+    const messageWidth = (config.message.length * baseCharWidth) + 20;
+    const totalWidth = labelWidth + messageWidth;
     
-    try {
-      // 1. Parse request
-      const config = this.modules.parser.process(
-        request.path,
-        request.query
-      );
-      
-      // 2. Security validation
-      SecurityGateway.validateBadgeRequest(config);
-      
-      // 3. Cache check
-      const cacheKey = JSON.stringify(config);
-      if (this.cache.has(cacheKey)) {
-        this.metrics.cached++;
-        return this.cache.get(cacheKey);
-      }
-      
-      // 4. Process colors
-      config.color = this.modules.color.process(config.color);
-      config.labelColor = this.modules.color.process(config.labelColor);
-      
-      // 5. Generate SVG
-      const svg = this.modules.svg.process(config);
-      
-      // 6. Cache result
-      this.cache.set(cacheKey, svg);
-      if (this.cache.size > 100) {
-        const firstKey = this.cache.keys().next().value;
-        this.cache.delete(firstKey);
-      }
-      
-      // 7. Audit
-      SecurityGateway.auditLog('badge-generated', config, 'success');
-      
-      return svg;
-      
-    } catch (error) {
-      this.metrics.errors++;
-      SecurityGateway.auditLog('badge-error', request, error.message);
-      throw error;
-    }
-  }
-
-  getMetrics() {
     return {
-      ...this.metrics,
-      cacheSize: this.cache.size,
-      hitRate: this.metrics.cached / this.metrics.requests
+      labelWidth,
+      messageWidth,
+      totalWidth,
+      labelX: labelWidth / 2 + (config.icon ? 10 : 0),
+      messageX: labelWidth + (messageWidth / 2)
     };
-  }
-
-  hotReplaceModule(moduleName, newModule) {
-    if (this.modules[moduleName] && newModule.getCapabilities) {
-      this.modules[moduleName] = newModule;
-      this.cache.clear();
-      return true;
-    }
-    return false;
   }
 }
 
 // ============================================
-// PRODUCTION API
+// ORCHESTRATEUR SIMPLIFIÉ
 // ============================================
-const orchestrator = new IntelligentOrchestrator();
+class CreativeOrchestrator {
+  constructor() {
+    this.cache = new Map();
+    this.stats = { generated: 0, cached: 0 };
+  }
 
-// Badge endpoint
-app.get('/badge/:badgeContent*', async (req, res) => {
+  async generate(params) {
+    const config = this._parseParams(params);
+    const cacheKey = JSON.stringify(config);
+    
+    if (this.cache.has(cacheKey)) {
+      this.stats.cached++;
+      return this.cache.get(cacheKey);
+    }
+    
+    const svg = CreativeSVGGenerator.generate(config);
+    
+    this.cache.set(cacheKey, svg);
+    this.stats.generated++;
+    
+    if (this.cache.size > 200) {
+      const firstKey = this.cache.keys().next().value;
+      this.cache.delete(firstKey);
+    }
+    
+    return svg;
+  }
+
+  _parseParams(params) {
+    return {
+      label: params.label || 'Label',
+      message: params.message || 'Message',
+      color: params.color || '8b5cf6',
+      style: params.style || 'glass',
+      animate: params.animate || 'none',
+      icon: params.icon || null,
+      textColor: params.textColor || null,
+      messageColor: params.messageColor || null
+    };
+  }
+
+  getStats() {
+    return {
+      ...this.stats,
+      cacheSize: this.cache.size,
+      hitRate: this.stats.cached / (this.stats.generated + this.stats.cached)
+    };
+  }
+}
+
+// ============================================
+// API ROUTES
+// ============================================
+const orchestrator = new CreativeOrchestrator();
+
+// Badge endpoint simplifié
+app.get('/badge/:label/:message/:color?', async (req, res) => {
   try {
-    const svg = await orchestrator.execute({
-      path: req.path,
-      query: req.query
+    const svg = await orchestrator.generate({
+      label: decodeURIComponent(req.params.label),
+      message: decodeURIComponent(req.params.message),
+      color: req.params.color?.replace('#', '') || req.query.color,
+      style: req.query.style,
+      animate: req.query.animate,
+      icon: req.query.icon,
+      textColor: req.query.textColor,
+      messageColor: req.query.messageColor
     });
     
-    res.setHeader('Content-Type', 'image/svg+xml; charset=utf-8');
-    res.setHeader('Cache-Control', 'public, max-age=3600, s-maxage=7200');
-    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Content-Type', 'image/svg+xml');
+    res.setHeader('Cache-Control', 'public, max-age=7200');
     res.send(svg);
-    
   } catch (error) {
-    res.status(400).send(`
-      <svg xmlns="http://www.w3.org/2000/svg" width="120" height="20">
-        <rect width="120" height="20" fill="#e05d44"/>
-        <text x="60" y="14" text-anchor="middle" fill="#fff" font-family="Verdana" font-size="11">
-          Error: ${error.message}
-        </text>
-      </svg>
-    `);
+    res.status(400).send(`<svg><text>Error: ${error.message}</text></svg>`);
   }
 });
 
-// Health check
-app.get('/health', (req, res) => {
-  res.json({
-    status: 'healthy',
-    version: '2.0.0',
-    metrics: orchestrator.getMetrics(),
-    modules: Object.keys(orchestrator.modules).map(name => ({
-      name,
-      capabilities: orchestrator.modules[name].getCapabilities()
-    }))
-  });
-});
-
-// Documentation page
+// Playground/Documentation
 app.get('/', (req, res) => {
+  const animations = CreativeAnimationsModule.getAvailableAnimations();
+  const styles = Object.keys(VisualStylesModule.MODERN_STYLES);
+  
   res.send(`
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Shields 2.0 - Animated Badge Service</title>
+  <title>Shields Creative - Badge Visuel Service</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { 
@@ -342,91 +408,158 @@ app.get('/', (req, res) => {
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       color: #fff;
       padding: 40px 20px;
+      min-height: 100vh;
     }
-    .container { max-width: 900px; margin: 0 auto; }
-    h1 { font-size: 3em; margin-bottom: 10px; }
-    .subtitle { font-size: 1.2em; opacity: 0.9; margin-bottom: 40px; }
+    .container { max-width: 1200px; margin: 0 auto; }
+    h1 { font-size: 3.5em; margin-bottom: 10px; }
+    .tagline { font-size: 1.3em; opacity: 0.95; margin-bottom: 50px; }
     .card { 
       background: rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(10px);
-      border-radius: 16px;
-      padding: 30px;
+      backdrop-filter: blur(20px);
+      border-radius: 20px;
+      padding: 40px;
       margin-bottom: 30px;
       border: 1px solid rgba(255, 255, 255, 0.2);
     }
-    h2 { margin-bottom: 15px; }
-    code { 
-      background: rgba(0, 0, 0, 0.3);
-      padding: 2px 8px;
-      border-radius: 4px;
-      font-family: 'Courier New', monospace;
+    .grid { 
+      display: grid; 
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); 
+      gap: 20px; 
+      margin-top: 20px;
     }
-    .examples { display: grid; gap: 15px; }
-    .example { 
+    .example {
       background: rgba(0, 0, 0, 0.2);
-      padding: 15px;
-      border-radius: 8px;
+      padding: 20px;
+      border-radius: 12px;
+      text-align: center;
     }
-    .badge-preview { margin: 10px 0; }
+    .badge-preview { 
+      margin: 15px 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 60px;
+    }
+    code {
+      background: rgba(0, 0, 0, 0.3);
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 0.9em;
+      display: inline-block;
+      margin: 5px 0;
+    }
+    h2 { margin-bottom: 20px; font-size: 2em; }
+    .feature-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin-top: 20px;
+    }
+    .feature {
+      background: rgba(255, 255, 255, 0.05);
+      padding: 15px;
+      border-radius: 10px;
+      text-align: center;
+    }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>🎨 Shields 2.0</h1>
-    <p class="subtitle">Architecture Modulaire Mono-Fichier - Animated Badge Service</p>
+    <h1>🎨 Shields Creative</h1>
+    <p class="tagline">Service de badges visuels avec animations avancées - Alternative créative à Shields.io</p>
     
     <div class="card">
-      <h2>Usage</h2>
-      <code>GET /badge/Label-Message-Color?style=flat&animate=pulse</code>
+      <h2>Différenciateur Clé</h2>
+      <p style="font-size: 1.1em; line-height: 1.8;">
+        <strong>Shields.io</strong> = Badges informatifs statiques pour métriques techniques<br>
+        <strong>Shields Creative</strong> = Badges visuels animés pour impact et créativité
+      </p>
+    </div>
+
+    <div class="card">
+      <h2>Styles Disponibles</h2>
+      <div class="feature-list">
+        ${styles.map(s => `<div class="feature"><strong>${s}</strong></div>`).join('')}
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Animations Disponibles</h2>
+      <div class="feature-list">
+        ${animations.map(a => `<div class="feature">${a}</div>`).join('')}
+      </div>
     </div>
     
     <div class="card">
-      <h2>Parameters</h2>
-      <ul style="line-height: 2;">
-        <li><strong>style</strong>: flat, flat-square, plastic, for-the-badge, social</li>
-        <li><strong>animate</strong>: pulse, glow, gradient, shimmer, bounce, color-cycle</li>
-        <li><strong>labelColor</strong>: hex color (without #)</li>
-        <li><strong>glow</strong>: true/false</li>
-        <li><strong>logo</strong>: emoji character</li>
-      </ul>
-    </div>
-    
-    <div class="card">
-      <h2>Examples</h2>
-      <div class="examples">
+      <h2>Exemples Visuels</h2>
+      <div class="grid">
         <div class="example">
-          <code>/badge/Build-Passing-green?animate=pulse</code>
+          <h3>Glass + Pulse Scale</h3>
           <div class="badge-preview">
-            <img src="/badge/Build-Passing-green?animate=pulse" alt="Pulse badge">
+            <img src="/badge/Premium/Member/8b5cf6?style=glass&animate=pulse-scale" alt="Glass badge">
           </div>
+          <code>/badge/Premium/Member/8b5cf6?style=glass&animate=pulse-scale</code>
         </div>
         
         <div class="example">
-          <code>/badge/Status-Gold-yellow?animate=glow</code>
+          <h3>Neon + Neon Glow</h3>
           <div class="badge-preview">
-            <img src="/badge/Status-Gold-yellow?animate=glow" alt="Glow badge">
+            <img src="/badge/Live/Streaming/ef4444?style=neon&animate=neon-glow" alt="Neon badge">
           </div>
+          <code>/badge/Live/Streaming/ef4444?style=neon&animate=neon-glow</code>
         </div>
         
         <div class="example">
-          <code>/badge/Premium-Active-blueviolet?style=for-the-badge&animate=gradient</code>
+          <h3>Depth + Breathing</h3>
           <div class="badge-preview">
-            <img src="/badge/Premium-Active-blueviolet?style=for-the-badge&animate=gradient" alt="Gradient badge">
+            <img src="/badge/Status/Active/10b981?style=depth&animate=breathing" alt="Depth badge">
           </div>
+          <code>/badge/Status/Active/10b981?style=depth&animate=breathing</code>
         </div>
         
         <div class="example">
-          <code>/badge/Deploy-Success-green?logo=🚀&animate=bounce</code>
+          <h3>Gradient + Color Shift</h3>
           <div class="badge-preview">
-            <img src="/badge/Deploy-Success-green?logo=🚀&animate=bounce" alt="Bounce badge">
+            <img src="/badge/Rainbow/Mode/3b82f6?style=gradient&animate=color-shift" alt="Gradient badge">
           </div>
+          <code>/badge/Rainbow/Mode/3b82f6?style=gradient&animate=color-shift</code>
+        </div>
+        
+        <div class="example">
+          <h3>Minimal + Wave</h3>
+          <div class="badge-preview">
+            <img src="/badge/Design/System/6366f1?style=minimal&animate=wave" alt="Minimal badge">
+          </div>
+          <code>/badge/Design/System/6366f1?style=minimal&animate=wave</code>
+        </div>
+        
+        <div class="example">
+          <h3>Glass + Icon</h3>
+          <div class="badge-preview">
+            <img src="/badge/Rocket/Launch/f59e0b?style=glass&icon=🚀" alt="Icon badge">
+          </div>
+          <code>/badge/Rocket/Launch/f59e0b?style=glass&icon=🚀</code>
         </div>
       </div>
     </div>
     
     <div class="card">
-      <h2>System Status</h2>
-      <p>Check <a href="/health" style="color: #fbbf24;">/health</a> endpoint for metrics and module status</p>
+      <h2>Usage</h2>
+      <code style="display: block; text-align: center; font-size: 1.1em; padding: 15px;">
+        /badge/{label}/{message}/{color}?style={style}&animate={animation}&icon={emoji}
+      </code>
+    </div>
+
+    <div class="card">
+      <h2>Use Cases Idéaux</h2>
+      <ul style="line-height: 2.5; font-size: 1.1em;">
+        <li>✨ Portfolios créatifs</li>
+        <li>🎨 Landing pages modernes</li>
+        <li>🚀 Projets personnels/side-projects</li>
+        <li>💼 Présentations visuelles</li>
+        <li>🎮 Projets gaming/entertainment</li>
+        <li>📱 Apps avec strong visual identity</li>
+      </ul>
     </div>
   </div>
 </body>
@@ -434,12 +567,20 @@ app.get('/', (req, res) => {
   `);
 });
 
-// Start server
+// Stats endpoint
+app.get('/stats', (req, res) => {
+  res.json({
+    service: 'Shields Creative',
+    version: '1.0.0',
+    stats: orchestrator.getStats(),
+    availableStyles: Object.keys(VisualStylesModule.MODERN_STYLES),
+    availableAnimations: CreativeAnimationsModule.getAvailableAnimations()
+  });
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`🚀 Shields 2.0 running on port ${PORT}`);
-  console.log(`📊 Health check: http://localhost:${PORT}/health`);
-  console.log(`📖 Documentation: http://localhost:${PORT}/`);
+  console.log(`🎨 Shields Creative running on port ${PORT}`);
 });
 
 module.exports = app;
