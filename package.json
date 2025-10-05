@@ -1,34 +1,36 @@
 {
-  "name": "shields-2.0-monolith",
-  "version": "2.0.0",
-  "description": "Architecture Modulaire Mono-Fichier - Animated Badge Service",
+  "name": "shields-creative",
+  "version": "1.0.0",
+  "description": "Service de badges visuels animés - Alternative créative à Shields.io",
   "main": "app.js",
   "scripts": {
     "start": "node app.js",
     "dev": "nodemon app.js",
-    "test": "node test.js"
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
     "badges",
-    "shields",
+    "animated-badges",
     "svg",
-    "animated",
-    "modular-architecture",
-    "monolith"
+    "creative",
+    "visual-design",
+    "glassmorphism",
+    "neon-effects",
+    "modern-badges"
   ],
   "author": "NEXUS AXION",
   "license": "MIT",
   "dependencies": {
-    "express": "^4.18.2"
+    "express": "^4.19.2"
   },
   "devDependencies": {
-    "nodemon": "^3.0.2"
+    "nodemon": "^3.1.0"
   },
   "engines": {
-    "node": ">=16.0.0"
+    "node": ">=18.0.0"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/your-username/shields-2.0.git"
+    "url": "https://github.com/your-username/shields-creative.git"
   }
 }
