@@ -1,6 +1,6 @@
 // ============================================
 // SHIELDS CREATIVE - Badge Service Visuel
-// Focus : Animations Avancées & Styles Modernes
+// Version 1.1 - Corrections & Optimisations
 // ============================================
 
 const express = require('express');
@@ -115,7 +115,7 @@ class VisualStylesModule {
 }
 
 // ============================================
-// MODULE : ANIMATIONS CRÉATIVES
+// MODULE : ANIMATIONS CRÉATIVES (CORRIGÉ)
 // ============================================
 class CreativeAnimationsModule {
   static ANIMATIONS = {
@@ -153,19 +153,15 @@ class CreativeAnimationsModule {
       svg { animation: wave 3s ease-in-out infinite; }
     `,
 
-    // Animation Shimmer
+    // Animation Shimmer (CORRIGÉ - maintenant ça marche!)
     shimmer: `
-      @keyframes shimmer {
-        0% { background-position: -1000px 0; }
-        100% { background-position: 1000px 0; }
+      @keyframes shimmer-slide {
+        0% { transform: translateX(-100%); opacity: 0.3; }
+        50% { opacity: 1; }
+        100% { transform: translateX(100%); opacity: 0.3; }
       }
-      .shimmer-overlay {
-        background: linear-gradient(90deg, 
-          transparent, 
-          rgba(255,255,255,0.5), 
-          transparent);
-        background-size: 1000px 100%;
-        animation: shimmer 3s infinite;
+      .shimmer-rect {
+        animation: shimmer-slide 3s ease-in-out infinite;
       }
     `,
 
@@ -203,16 +199,6 @@ class CreativeAnimationsModule {
       svg { animation: bounce-elastic 2s ease-in-out infinite; }
     `,
 
-    // Animation Typing Effect (simulation)
-    typing: `
-      @keyframes typing {
-        0% { opacity: 0; }
-        50% { opacity: 1; }
-        100% { opacity: 0; }
-      }
-      .typing-cursor { animation: typing 1s step-end infinite; }
-    `,
-
     // Animation Glitch
     glitch: `
       @keyframes glitch {
@@ -245,7 +231,7 @@ class CreativeAnimationsModule {
 }
 
 // ============================================
-// MODULE : GÉNÉRATEUR SVG CRÉATIF
+// MODULE : GÉNÉRATEUR SVG CRÉATIF (AMÉLIORÉ)
 // ============================================
 class CreativeSVGGenerator {
   static generate(config) {
@@ -289,77 +275,143 @@ class CreativeSVGGenerator {
     </text>
   </g>
   
-  ${config.animate === 'shimmer' ? '<rect class="shimmer-overlay" width="100%" height="100%"/>' : ''}
+  ${this._getShimmerOverlay(config, dimensions, style)}
 </svg>`;
   }
 
-  static _calculateDimensions(config) {
-    const baseCharWidth = 7;
-    const iconPadding = config.icon ? 30 : 20;
+  static _getShimmerOverlay(config, dimensions, style) {
+    if (config.animate !== 'shimmer') return '';
     
-    const labelWidth = (config.label.length * baseCharWidth) + iconPadding;
-    const messageWidth = (config.message.length * baseCharWidth) + 20;
+    // Effet shimmer corrigé avec élément SVG natif
+    return `
+      <rect class="shimmer-rect" 
+            x="0" y="0" 
+            width="${dimensions.totalWidth * 0.3}" 
+            height="${style.height}" 
+            fill="rgba(255,255,255,0.4)"
+            opacity="0.3"/>
+    `;
+  }
+
+  static _calculateDimensions(config) {
+    // Calcul amélioré pour meilleure précision
+    const baseCharWidth = 7.5;
+    const iconPadding = config.icon ? 35 : 20;
+    
+    const labelWidth = Math.max(
+      (config.label.length * baseCharWidth) + iconPadding,
+      50
+    );
+    const messageWidth = Math.max(
+      (config.message.length * baseCharWidth) + 20,
+      45
+    );
     const totalWidth = labelWidth + messageWidth;
     
     return {
       labelWidth,
       messageWidth,
       totalWidth,
-      labelX: labelWidth / 2 + (config.icon ? 10 : 0),
+      labelX: labelWidth / 2 + (config.icon ? 12 : 0),
       messageX: labelWidth + (messageWidth / 2)
     };
   }
 }
 
 // ============================================
-// ORCHESTRATEUR SIMPLIFIÉ
+// ORCHESTRATEUR SIMPLIFIÉ (AMÉLIORÉ)
 // ============================================
 class CreativeOrchestrator {
   constructor() {
     this.cache = new Map();
-    this.stats = { generated: 0, cached: 0 };
+    this.stats = { generated: 0, cached: 0, errors: 0 };
   }
 
   async generate(params) {
-    const config = this._parseParams(params);
-    const cacheKey = JSON.stringify(config);
-    
-    if (this.cache.has(cacheKey)) {
-      this.stats.cached++;
-      return this.cache.get(cacheKey);
+    try {
+      const config = this._parseParams(params);
+      const cacheKey = JSON.stringify(config);
+      
+      if (this.cache.has(cacheKey)) {
+        this.stats.cached++;
+        return this.cache.get(cacheKey);
+      }
+      
+      const svg = CreativeSVGGenerator.generate(config);
+      
+      this.cache.set(cacheKey, svg);
+      this.stats.generated++;
+      
+      // Limite cache à 200 entrées
+      if (this.cache.size > 200) {
+        const firstKey = this.cache.keys().next().value;
+        this.cache.delete(firstKey);
+      }
+      
+      return svg;
+    } catch (error) {
+      this.stats.errors++;
+      throw error;
     }
-    
-    const svg = CreativeSVGGenerator.generate(config);
-    
-    this.cache.set(cacheKey, svg);
-    this.stats.generated++;
-    
-    if (this.cache.size > 200) {
-      const firstKey = this.cache.keys().next().value;
-      this.cache.delete(firstKey);
-    }
-    
-    return svg;
   }
 
   _parseParams(params) {
+    // Validation et nettoyage des paramètres
     return {
-      label: params.label || 'Label',
-      message: params.message || 'Message',
-      color: params.color || '8b5cf6',
-      style: params.style || 'glass',
-      animate: params.animate || 'none',
+      label: this._sanitize(params.label) || 'Label',
+      message: this._sanitize(params.message) || 'Message',
+      color: this._validateColor(params.color) || '8b5cf6',
+      style: this._validateStyle(params.style),
+      animate: this._validateAnimation(params.animate),
       icon: params.icon || null,
       textColor: params.textColor || null,
       messageColor: params.messageColor || null
     };
   }
 
+  _sanitize(text) {
+    if (!text) return null;
+    // Enlève caractères dangereux, limite longueur
+    return text.slice(0, 100).replace(/[<>]/g, '');
+  }
+
+  _validateColor(color) {
+    if (!color) return '8b5cf6';
+    
+    // Couleurs nommées
+    const namedColors = {
+      'success': '44cc11',
+      'warning': 'f59e0b',
+      'error': 'ef4444',
+      'info': '3b82f6'
+    };
+    
+    if (namedColors[color]) return namedColors[color];
+    
+    // Hex validation
+    const cleanColor = color.replace('#', '');
+    if (/^[0-9a-f]{6}$/i.test(cleanColor)) {
+      return cleanColor;
+    }
+    
+    return '8b5cf6'; // Fallback
+  }
+
+  _validateStyle(style) {
+    const validStyles = ['glass', 'neon', 'depth', 'gradient', 'minimal'];
+    return validStyles.includes(style) ? style : 'glass';
+  }
+
+  _validateAnimation(animation) {
+    const validAnimations = CreativeAnimationsModule.getAvailableAnimations();
+    return validAnimations.includes(animation) ? animation : 'none';
+  }
+
   getStats() {
     return {
       ...this.stats,
       cacheSize: this.cache.size,
-      hitRate: this.stats.cached / (this.stats.generated + this.stats.cached)
+      hitRate: this.stats.cached / (this.stats.generated + this.stats.cached) || 0
     };
   }
 }
@@ -369,7 +421,7 @@ class CreativeOrchestrator {
 // ============================================
 const orchestrator = new CreativeOrchestrator();
 
-// Badge endpoint simplifié
+// Badge endpoint
 app.get('/badge/:label/:message/:color?', async (req, res) => {
   try {
     const svg = await orchestrator.generate({
@@ -383,11 +435,20 @@ app.get('/badge/:label/:message/:color?', async (req, res) => {
       messageColor: req.query.messageColor
     });
     
-    res.setHeader('Content-Type', 'image/svg+xml');
+    res.setHeader('Content-Type', 'image/svg+xml; charset=utf-8');
     res.setHeader('Cache-Control', 'public, max-age=7200');
+    res.setHeader('Access-Control-Allow-Origin', '*');
     res.send(svg);
   } catch (error) {
-    res.status(400).send(`<svg><text>Error: ${error.message}</text></svg>`);
+    res.status(400).setHeader('Content-Type', 'image/svg+xml').send(`
+      <svg xmlns="http://www.w3.org/2000/svg" width="120" height="20">
+        <rect width="120" height="20" fill="#e05d44"/>
+        <text x="60" y="14" text-anchor="middle" fill="#fff" 
+              font-family="Verdana" font-size="11">
+          Error: ${error.message.slice(0, 20)}
+        </text>
+      </svg>
+    `);
   }
 });
 
@@ -401,6 +462,8 @@ app.get('/', (req, res) => {
 <html>
 <head>
   <title>Shields Creative - Badge Visuel Service</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { 
@@ -461,12 +524,25 @@ app.get('/', (req, res) => {
       border-radius: 10px;
       text-align: center;
     }
+    .update-badge {
+      display: inline-block;
+      background: #10b981;
+      color: white;
+      padding: 5px 15px;
+      border-radius: 20px;
+      font-size: 0.85em;
+      font-weight: 600;
+      margin-left: 10px;
+    }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>🎨 Shields Creative</h1>
-    <p class="tagline">Service de badges visuels avec animations avancées - Alternative créative à Shields.io</p>
+    <p class="tagline">
+      Service de badges visuels avec animations avancées - Alternative créative à Shields.io
+      <span class="update-badge">v1.1 - Shimmer Fix</span>
+    </p>
     
     <div class="card">
       <h2>Différenciateur Clé</h2>
@@ -526,11 +602,11 @@ app.get('/', (req, res) => {
         </div>
         
         <div class="example">
-          <h3>Minimal + Wave</h3>
+          <h3>Shimmer Effect (FIXED)</h3>
           <div class="badge-preview">
-            <img src="/badge/Design/System/6366f1?style=minimal&animate=wave" alt="Minimal badge">
+            <img src="/badge/Shiny/Effect/fbbf24?animate=shimmer" alt="Shimmer badge">
           </div>
-          <code>/badge/Design/System/6366f1?style=minimal&animate=wave</code>
+          <code>/badge/Shiny/Effect/fbbf24?animate=shimmer</code>
         </div>
         
         <div class="example">
@@ -561,6 +637,17 @@ app.get('/', (req, res) => {
         <li>📱 Apps avec strong visual identity</li>
       </ul>
     </div>
+    
+    <div class="card">
+      <h2>Changelog v1.1</h2>
+      <ul style="line-height: 2; font-size: 1em;">
+        <li>✅ Fix animation shimmer (maintenant fonctionnelle)</li>
+        <li>✅ Amélioration calcul dimensions</li>
+        <li>✅ Validation robuste des paramètres</li>
+        <li>✅ Support couleurs nommées (success, warning, error, info)</li>
+        <li>✅ Meilleure gestion erreurs</li>
+      </ul>
+    </div>
   </div>
 </body>
 </html>
@@ -571,16 +658,28 @@ app.get('/', (req, res) => {
 app.get('/stats', (req, res) => {
   res.json({
     service: 'Shields Creative',
-    version: '1.0.0',
+    version: '1.1.0',
+    status: 'operational',
     stats: orchestrator.getStats(),
     availableStyles: Object.keys(VisualStylesModule.MODERN_STYLES),
     availableAnimations: CreativeAnimationsModule.getAvailableAnimations()
   });
 });
 
+// Health check
+app.get('/health', (req, res) => {
+  res.json({ 
+    status: 'healthy', 
+    uptime: process.uptime(),
+    memory: process.memoryUsage()
+  });
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`🎨 Shields Creative running on port ${PORT}`);
+  console.log(`🎨 Shields Creative v1.1 running on port ${PORT}`);
+  console.log(`📊 Stats: http://localhost:${PORT}/stats`);
+  console.log(`💚 Health: http://localhost:${PORT}/health`);
 });
 
 module.exports = app;
