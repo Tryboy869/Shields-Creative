@@ -1,0 +1,34 @@
+{
+  "name": "shields-2.0-monolith",
+  "version": "2.0.0",
+  "description": "Architecture Modulaire Mono-Fichier - Animated Badge Service",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "dev": "nodemon app.js",
+    "test": "node test.js"
+  },
+  "keywords": [
+    "badges",
+    "shields",
+    "svg",
+    "animated",
+    "modular-architecture",
+    "monolith"
+  ],
+  "author": "NEXUS AXION",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/shields-2.0.git"
+  }
+}
