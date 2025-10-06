@@ -1,421 +1,324 @@
 // ============================================
 // SHIELDS CREATIVE - Badge Service Visuel
-// Version 1.2 - Corrections Couleurs & Animations
+// Version 1.3 - Stabilité Emojis & Couleurs
 // ============================================
 
 const express = require('express');
 const app = express();
 
 // ============================================
-// MODULE : COULEURS (CORRIGÉ)
+// MODULE : COULEURS
 // ============================================
 class ColorModule {
-  static NAMED_COLORS = {
-    // Couleurs statut
-    'success': '44cc11',
-    'warning': 'f59e0b', 
-    'error': 'ef4444',
-    'info': '3b82f6',
-    
-    // Couleurs standard
-    'brightgreen': '44cc11',
-    'green': '97CA00',
-    'yellowgreen': 'a4a61d',
-    'yellow': 'dfb317',
-    'orange': 'fe7d37',
-    'red': 'e05d44',
-    'blue': '007ec6',
-    'grey': '555',
-    'lightgrey': '9f9f9f',
-    'blueviolet': '8b5cf6',
-    'purple': '8b5cf6',
-    'pink': 'ec4899',
-    'gold': 'fbbf24'
-  };
+  static NAMED_COLORS = {
+    // Couleurs statut
+    'success': '44cc11',
+    'warning': 'f59e0b',
+    'error': 'ef4444',
+    'info': '3b82f6',
+    
+    // Couleurs standard
+    'brightgreen': '44cc11',
+    'green': '97CA00',
+    'yellowgreen': 'a4a61d',
+    'yellow': 'dfb317',
+    'orange': 'fe7d37',
+    'red': 'e05d44',
+    'blue': '007ec6',
+    'grey': '555',
+    'lightgrey': '9f9f9f',
+    'blueviolet': '8b5cf6',
+    'purple': '8b5cf6',
+    'pink': 'ec4899',
+    'gold': 'fbbf24'
+  };
 
-  static resolve(colorInput) {
-    if (!colorInput) return '8b5cf6';
-    
-    const normalized = colorInput.toLowerCase().replace('#', '');
-    
-    // Check named colors first
-    if (this.NAMED_COLORS[normalized]) {
-      return this.NAMED_COLORS[normalized];
-    }
-    
-    // Validate hex
-    if (/^[0-9a-f]{6}$/i.test(normalized)) {
-      return normalized;
-    }
-    if (/^[0-9a-f]{3}$/i.test(normalized)) {
-      return normalized.split('').map(c => c + c).join('');
-    }
-    
-    return '8b5cf6'; // Fallback
-  }
+  static resolve(colorInput) {
+    if (!colorInput) return '8b5cf6';
+    
+    const normalized = colorInput.toLowerCase().replace('#', '');
+    
+    if (this.NAMED_COLORS[normalized]) {
+      return this.NAMED_COLORS[normalized];
+    }
+    
+    if (/^[0-9a-f]{6}$/i.test(normalized)) {
+      return normalized;
+    }
+    if (/^[0-9a-f]{3}$/i.test(normalized)) {
+      return normalized.split('').map(c => c + c).join('');
+    }
+    
+    return '8b5cf6'; // Fallback
+  }
 }
 
 // ============================================
 // MODULE : STYLES VISUELS AVANCÉS
 // ============================================
 class VisualStylesModule {
-  static MODERN_STYLES = {
-    glass: {
-      height: 32,
-      radius: 12,
-      font: 12,
-      template: (config, dims) => `
-        <defs>
-          <linearGradient id="glass-grad" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" style="stop-color:rgba(255,255,255,0.25)"/>
-            <stop offset="100%" style="stop-color:rgba(255,255,255,0.05)"/>
-          </linearGradient>
-        </defs>
-        <rect width="${dims.totalWidth}" height="32" rx="12" fill="url(#glass-grad)" 
-              stroke="rgba(255,255,255,0.2)" stroke-width="1.5"/>
-      `
-    },
+  static MODERN_STYLES = {
+    glass: {
+      height: 32,
+      radius: 12,
+      font: 12,
+      template: (config, dims) => `
+        <defs>
+          <linearGradient id="glass-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" style="stop-color:rgba(255,255,255,0.25)"/>
+            <stop offset="100%" style="stop-color:rgba(255,255,255,0.05)"/>
+          </linearGradient>
+        </defs>
+        <rect width="${dims.totalWidth}" height="32" rx="12" fill="#${config.color}"/>
+        <rect width="${dims.totalWidth}" height="32" rx="12" fill="url(#glass-grad)"
+              stroke="rgba(255,255,255,0.2)" stroke-width="1.5"/>
+      `
+    },
+    neon: {
+      height: 28,
+      radius: 8,
+      font: 11,
+      template: (config, dims) => `
+        <rect class="neon-rect" width="${dims.totalWidth}" height="28" rx="8"
+              fill="none" stroke="#${config.color}" stroke-width="2.5"
+              style="filter: drop-shadow(0 0 4px #${config.color}99);"/>
+      `
+    },
+    depth: {
+      height: 30,
+      radius: 6,
+      font: 11,
+      template: (config, dims) => `
+        <rect width="${dims.totalWidth}" height="30" rx="6"
+              fill="#${config.color}" style="filter: drop-shadow(0 4px 3px rgba(0,0,0,0.3));"/>
+      `
+    },
+    gradient: {
+      height: 26,
+      radius: 13,
+      font: 11,
+      template: (config, dims) => `
+        <defs>
+          <linearGradient id="flow-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#${config.color}" />
+            <stop offset="100%" stop-color="#${config.color}99"/>
+          </linearGradient>
+        </defs>
+        <rect width="${dims.totalWidth}" height="26" rx="13" fill="url(#flow-grad)"/>
+      `
+    },
+    minimal: {
+      height: 24,
+      radius: 6,
+      font: 10,
+      template: (config, dims) => `
+        <rect width="${dims.totalWidth}" height="24" rx="6"
+              fill="#${config.color}" opacity="0.12"/>
+        <rect x="1" y="1" width="${dims.totalWidth-2}" height="22" rx="5"
+              fill="none" stroke="#${config.color}" stroke-width="1.5"/>
+      `
+    }
+  };
 
-    neon: {
-      height: 28,
-      radius: 8,
-      font: 11,
-      template: (config, dims) => `
-        <defs>
-          <filter id="neon-glow">
-            <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
-            <feMerge>
-              <feMergeNode in="coloredBlur"/>
-              <feMergeNode in="SourceGraphic"/>
-            </feMerge>
-          </filter>
-        </defs>
-        <rect class="neon-rect" width="${dims.totalWidth}" height="28" rx="8" 
-              fill="none" stroke="#${config.color}" stroke-width="2.5"
-              filter="url(#neon-glow)"/>
-      `
-    },
-
-    depth: {
-      height: 30,
-      radius: 6,
-      font: 11,
-      template: (config, dims) => `
-        <defs>
-          <filter id="depth-shadow">
-            <feDropShadow dx="0" dy="4" stdDeviation="3" flood-opacity="0.3"/>
-          </filter>
-        </defs>
-        <rect width="${dims.totalWidth}" height="30" rx="6" 
-              fill="#${config.color}" filter="url(#depth-shadow)"/>
-      `
-    },
-
-    gradient: {
-      height: 26,
-      radius: 13,
-      font: 11,
-      template: (config, dims) => `
-        <defs>
-          <linearGradient id="flow-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" style="stop-color:#${config.color}">
-              <animate attributeName="stop-color" 
-                values="#${config.color};#${config.color}dd;#${config.color}" 
-                dur="3s" repeatCount="indefinite"/>
-            </stop>
-            <stop offset="100%" style="stop-color:#${config.color}66"/>
-          </linearGradient>
-        </defs>
-        <rect width="${dims.totalWidth}" height="26" rx="13" fill="url(#flow-grad)"/>
-      `
-    },
-
-    minimal: {
-      height: 24,
-      radius: 6,
-      font: 10,
-      template: (config, dims) => `
-        <rect width="${dims.totalWidth}" height="24" rx="6" 
-              fill="#${config.color}" opacity="0.12"/>
-        <rect x="1" y="1" width="${dims.totalWidth-2}" height="22" rx="5" 
-              fill="none" stroke="#${config.color}" stroke-width="1.5"/>
-      `
-    }
-  };
-
-  static process(styleName, config, dimensions) {
-    const style = this.MODERN_STYLES[styleName] || this.MODERN_STYLES.glass;
-    return {
-      ...style,
-      background: style.template(config, dimensions)
-    };
-  }
+  static process(styleName, config, dimensions) {
+    const style = this.MODERN_STYLES[styleName] || this.MODERN_STYLES.glass;
+    return {
+      ...style,
+      background: style.template(config, dimensions)
+    };
+  }
 }
 
+
 // ============================================
-// MODULE : ANIMATIONS CRÉATIVES (CORRIGÉ)
+// MODULE : ANIMATIONS CRÉATIVES
 // ============================================
 class CreativeAnimationsModule {
-  static ANIMATIONS = {
-    'pulse-scale': `
-      @keyframes pulse-scale {
-        0%, 100% { transform: scale(1); opacity: 1; }
-        50% { transform: scale(1.05); opacity: 0.9; }
-      }
-      svg { animation: pulse-scale 2s ease-in-out infinite; }
-    `,
+  static ANIMATIONS = {
+    'pulse-scale': `
+      @keyframes p { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.03); } }
+      svg { animation: p 2s ease-in-out infinite; }`,
+    'neon-glow': `
+      @keyframes n { 0%, 100% { filter: drop-shadow(0 0 3px currentColor); } 50% { filter: drop-shadow(0 0 6px currentColor); } }
+      .neon-rect { color: #${(props) => props.color}; animation: n 1.5s ease-in-out infinite; }`,
+    'wave': `
+      @keyframes w { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-4px) rotate(2deg); } }
+      svg { animation: w 3s ease-in-out infinite; }`,
+    'shimmer': `
+      @keyframes s { 100% { transform: translateX(100%); } }
+      .shimmer-rect { animation: s 2s ease-in-out infinite; }`,
+    'rotate-3d': `
+      @keyframes r { 0%, 100% { transform: perspective(800px) rotateY(0deg); } 50% { transform: perspective(800px) rotateY(20deg); } }
+      svg { animation: r 4s ease-in-out infinite; }`,
+  };
 
-    'neon-glow': `
-      @keyframes neon-pulse {
-        0%, 100% { 
-          filter: drop-shadow(0 0 8px currentColor) drop-shadow(0 0 15px currentColor); 
-        }
-        50% { 
-          filter: drop-shadow(0 0 15px currentColor) drop-shadow(0 0 25px currentColor); 
-        }
-      }
-      .neon-rect { animation: neon-pulse 1.5s ease-in-out infinite; }
-    `,
+  static process(animationName, config) {
+    if (!this.ANIMATIONS[animationName]) return '';
+    return (this.ANIMATIONS[animationName]).replace(/\${(props) => props.color}/g, config.color);
+  }
 
-    wave: `
-      @keyframes wave {
-        0% { transform: translateY(0px) rotate(0deg); }
-        25% { transform: translateY(-5px) rotate(2deg); }
-        50% { transform: translateY(0px) rotate(0deg); }
-        75% { transform: translateY(5px) rotate(-2deg); }
-        100% { transform: translateY(0px) rotate(0deg); }
-      }
-      svg { animation: wave 3s ease-in-out infinite; }
-    `,
-
-    shimmer: `
-      @keyframes shimmer-slide {
-        0% { transform: translateX(-100%); opacity: 0.3; }
-        50% { opacity: 1; }
-        100% { transform: translateX(100%); opacity: 0.3; }
-      }
-      .shimmer-rect { animation: shimmer-slide 3s ease-in-out infinite; }
-    `,
-
-    'rotate-3d': `
-      @keyframes rotate-3d {
-        0%, 100% { transform: perspective(600px) rotateY(0deg); }
-        50% { transform: perspective(600px) rotateY(15deg); }
-      }
-      svg { 
-        animation: rotate-3d 4s ease-in-out infinite;
-        transform-style: preserve-3d;
-      }
-    `,
-
-    'color-shift': `
-      @keyframes color-shift {
-        0% { fill: #ef4444; }
-        20% { fill: #f59e0b; }
-        40% { fill: #10b981; }
-        60% { fill: #3b82f6; }
-        80% { fill: #8b5cf6; }
-        100% { fill: #ef4444; }
-      }
-      .animated-fill { animation: color-shift 5s linear infinite; }
-    `,
-
-    'bounce-elastic': `
-      @keyframes bounce-elastic {
-        0%, 100% { transform: translateY(0) scale(1); }
-        25% { transform: translateY(-8px) scale(1.02, 0.98); }
-        50% { transform: translateY(0) scale(0.98, 1.02); }
-        75% { transform: translateY(-4px) scale(1.01, 0.99); }
-      }
-      svg { animation: bounce-elastic 2s ease-in-out infinite; }
-    `,
-
-    glitch: `
-      @keyframes glitch {
-        0%, 100% { transform: translate(0); }
-        20% { transform: translate(-2px, 2px); }
-        40% { transform: translate(2px, -2px); }
-        60% { transform: translate(-2px, -2px); }
-        80% { transform: translate(2px, 2px); }
-      }
-      svg { animation: glitch 0.3s infinite; }
-    `,
-
-    breathing: `
-      @keyframes breathing {
-        0%, 100% { transform: scale(1); opacity: 1; }
-        50% { transform: scale(1.03); opacity: 0.85; }
-      }
-      svg { animation: breathing 4s ease-in-out infinite; }
-    `
-  };
-
-  static process(animationName) {
-    return this.ANIMATIONS[animationName] || '';
-  }
-
-  static getAvailableAnimations() {
-    return Object.keys(this.ANIMATIONS);
-  }
+  static getAvailableAnimations() {
+    return Object.keys(this.ANIMATIONS);
+  }
 }
+
 
 // ============================================
 // MODULE : GÉNÉRATEUR SVG CRÉATIF
 // ============================================
 class CreativeSVGGenerator {
-  static generate(config) {
-    const dimensions = this._calculateDimensions(config);
-    const style = VisualStylesModule.process(config.style, config, dimensions);
-    const animation = CreativeAnimationsModule.process(config.animate);
+  static generate(config) {
+    const dimensions = this._calculateDimensions(config);
+    const style = VisualStylesModule.process(config.style, config, dimensions);
+    const animation = CreativeAnimationsModule.process(config.animate, config);
 
-    return `<svg xmlns="http://www.w3.org/2000/svg" 
-            width="${dimensions.totalWidth}" 
-            height="${style.height}" 
-            role="img" 
-            aria-label="${config.label}: ${config.message}">
-  ${animation ? `<style>${animation}</style>` : ''}
-  
-  <title>${config.label}: ${config.message}</title>
-  
-  ${style.background}
-  
-  <g fill="${config.textColor || '#fff'}" 
-     text-anchor="middle" 
-     font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" 
-     text-rendering="geometricPrecision" 
-     font-size="${style.font}"
-     font-weight="500">
-    
-    ${config.icon ? `<text x="20" y="${style.height/2 + 4}" font-size="16">${config.icon}</text>` : ''}
-    
-    <text x="${dimensions.labelX}" 
-          y="${style.height/2}" 
-          dominant-baseline="central"
-          class="animated-fill">
-      ${config.label}
-    </text>
-    
-    <text x="${dimensions.messageX}" 
-          y="${style.height/2}" 
-          dominant-baseline="central"
-          fill="${config.messageColor || '#fff'}"
-          font-weight="600">
-      ${config.message}
-    </text>
-  </g>
-  
-  ${this._getShimmerOverlay(config, dimensions, style)}
+    return `<svg xmlns="http://www.w3.org/2000/svg"
+            width="${dimensions.totalWidth}"
+            height="${style.height}"
+            role="img"
+            aria-label="${config.label}: ${config.message}">
+  ${animation ? `<style>${animation}</style>` : ''}
+  <title>${config.label}: ${config.message}</title>
+  ${style.background}
+  ${this._getShimmerOverlay(config, dimensions, style)}
+  <g fill="${config.textColor || '#ffffff'}"
+     text-anchor="middle"
+     font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'"
+     font-weight="500"
+     font-size="${style.font}px">
+    ${config.icon ? `<text x="${dimensions.iconX}" y="${style.height / 2}" dominant-baseline="central" font-size="14px">${config.icon}</text>` : ''}
+    <text x="${dimensions.labelX}" y="${style.height / 2}" dominant-baseline="central" fill-opacity="0.8">${config.label}</text>
+    <text x="${dimensions.messageX}" y="${style.height / 2}" dominant-baseline="central" font-weight="600" fill="${config.messageColor || '#ffffff'}">${config.message}</text>
+  </g>
 </svg>`;
-  }
+  }
+  
+  static _getShimmerOverlay(config, dimensions, style) {
+    if (config.animate !== 'shimmer') return '';
+    return `<mask id="m"><rect width="${dimensions.totalWidth}" height="${style.height}" rx="${style.radius}" ry="${style.radius}" fill="#fff"/></mask>
+     <g mask="url(#m)">
+       <rect class="shimmer-rect" x="0" y="0" width="${dimensions.totalWidth * 0.5}" height="${style.height}" fill="rgba(255,255,255,0.5)" transform="translateX(-100%)"/>
+     </g>`;
+  }
 
-  static _getShimmerOverlay(config, dimensions, style) {
-    if (config.animate !== 'shimmer') return '';
-    
-    return `
-      <rect class="shimmer-rect" 
-            x="0" y="0" 
-            width="${dimensions.totalWidth * 0.3}" 
-            height="${style.height}" 
-            fill="rgba(255,255,255,0.4)"
-            opacity="0.3"/>
-    `;
-  }
+  // 👈 CORRECTION: Logique de calcul de largeur revue pour les emojis
+  static _calculateDimensions(config) {
+    const charWidth = 7.5; // Largeur moyenne d'un caractère
+    const emojiWidth = 14; // Largeur pour un emoji
+    const padding = 15;
+    const iconPadding = 22;
 
-  static _calculateDimensions(config) {
-    const baseCharWidth = 7.5;
-    const iconPadding = config.icon ? 35 : 20;
-    
-    const labelWidth = Math.max(
-      (config.label.length * baseCharWidth) + iconPadding,
-      50
-    );
-    const messageWidth = Math.max(
-      (config.message.length * baseCharWidth) + 20,
-      45
-    );
-    const totalWidth = labelWidth + messageWidth;
-    
-    return {
-      labelWidth,
-      messageWidth,
-      totalWidth,
-      labelX: labelWidth / 2 + (config.icon ? 12 : 0),
-      messageX: labelWidth + (messageWidth / 2)
-    };
-  }
+    // Utilise Array.from pour compter correctement les caractères Unicode (emojis)
+    const countChars = (str) => Array.from(str).length;
+
+    let labelWidth = countChars(config.label) * charWidth + padding;
+    if (config.icon) {
+      labelWidth += iconPadding;
+    }
+
+    const messageWidth = countChars(config.message) * charWidth + padding;
+    const totalWidth = labelWidth + messageWidth;
+
+    const iconX = padding / 2 + emojiWidth / 2;
+    const labelX = config.icon ? iconX + iconPadding : labelWidth / 2;
+
+    return {
+      totalWidth,
+      labelX,
+      messageX: labelWidth + messageWidth / 2,
+      iconX
+    };
+  }
 }
 
 // ============================================
 // ORCHESTRATEUR
 // ============================================
 class CreativeOrchestrator {
-  constructor() {
-    this.cache = new Map();
-    this.stats = { generated: 0, cached: 0, errors: 0 };
-  }
+  constructor() {
+    this.cache = new Map();
+    this.stats = { generated: 0, cached: 0, errors: 0 };
+  }
 
-  async generate(params) {
-    try {
-      const config = this._parseParams(params);
-      const cacheKey = JSON.stringify(config);
-      
-      if (this.cache.has(cacheKey)) {
-        this.stats.cached++;
-        return this.cache.get(cacheKey);
-      }
-      
-      const svg = CreativeSVGGenerator.generate(config);
-      
-      this.cache.set(cacheKey, svg);
-      this.stats.generated++;
-      
-      if (this.cache.size > 200) {
-        const firstKey = this.cache.keys().next().value;
-        this.cache.delete(firstKey);
-      }
-      
-      return svg;
-    } catch (error) {
-      this.stats.errors++;
-      throw error;
-    }
-  }
+  async generate(params) {
+    try {
+      const config = this._parseParams(params);
+      const cacheKey = JSON.stringify(config);
+      
+      if (this.cache.has(cacheKey)) {
+        this.stats.cached++;
+        return this.cache.get(cacheKey);
+      }
+      
+      const svg = CreativeSVGGenerator.generate(config);
+      this.cache.set(cacheKey, svg);
+      this.stats.generated++;
+      
+      if (this.cache.size > 200) {
+        const firstKey = this.cache.keys().next().value;
+        this.cache.delete(firstKey);
+      }
+      
+      return svg;
+    } catch (error) {
+      this.stats.errors++;
+      return this._generateErrorSVG(error.message);
+    }
+  }
 
-  _parseParams(params) {
-    return {
-      label: this._sanitize(params.label) || 'Label',
-      message: this._sanitize(params.message) || 'Message',
-      color: ColorModule.resolve(params.color),
-      style: this._validateStyle(params.style),
-      animate: this._validateAnimation(params.animate),
-      icon: params.icon || null,
-      textColor: params.textColor || null,
-      messageColor: params.messageColor || null
-    };
-  }
+  _parseParams(params) {
+    return {
+      // 👈 CORRECTION: Utilise la fonction d'échappement robuste
+      label: this._escapeXml(params.label) || 'Label',
+      message: this._escapeXml(params.message) || 'Message',
+      // 👈 CORRECTION: Gestion plus fiable de la couleur depuis les params ou query
+      color: ColorModule.resolve((params.color || params.queryColor)),
+      style: this._validateStyle(params.style),
+      animate: this._validateAnimation(params.animate),
+      icon: params.icon ? this._escapeXml(params.icon) : null,
+      textColor: params.textColor ? ColorModule.resolve(params.textColor) : 'ffffff',
+      messageColor: params.messageColor ? ColorModule.resolve(params.messageColor) : 'ffffff'
+    };
+  }
 
-  _sanitize(text) {
-    if (!text) return null;
-    return text.slice(0, 100).replace(/[<>]/g, '');
-  }
+  // 👈 CORRECTION: Fonction robuste pour échapper les caractères spéciaux en XML/SVG
+  _escapeXml(text) {
+    if (!text) return null;
+    return text.slice(0, 100)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&apos;');
+  }
 
-  _validateStyle(style) {
-    const validStyles = ['glass', 'neon', 'depth', 'gradient', 'minimal'];
-    return validStyles.includes(style) ? style : 'glass';
-  }
+  _validateStyle(style) {
+    const validStyles = ['glass', 'neon', 'depth', 'gradient', 'minimal'];
+    return validStyles.includes(style) ? style : 'glass';
+  }
 
-  _validateAnimation(animation) {
-    const validAnimations = CreativeAnimationsModule.getAvailableAnimations();
-    return validAnimations.includes(animation) ? animation : 'none';
-  }
+  _validateAnimation(animation) {
+    const validAnimations = CreativeAnimationsModule.getAvailableAnimations();
+    return validAnimations.includes(animation) ? animation : null;
+  }
 
-  getStats() {
-    return {
-      ...this.stats,
-      cacheSize: this.cache.size,
-      hitRate: this.stats.cached / (this.stats.generated + this.stats.cached) || 0
-    };
-  }
+  getStats() {
+    return {
+      ...this.stats,
+      cacheSize: this.cache.size,
+      hitRate: this.stats.cached / (this.stats.generated + this.stats.cached) || 0
+    };
+  }
+  
+  _generateErrorSVG(message) {
+    const cleanMessage = this._escapeXml(message.slice(0, 30));
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="200" height="28" role="img">
+     <rect width="200" height="28" rx="6" fill="#ef4444"/>
+     <text x="100" y="14" dominant-baseline="central" text-anchor="middle" fill="#fff" font-family="sans-serif" font-size="11px" font-weight="600">
+       Error: ${cleanMessage}
+     </text>
+    </svg>`;
+  }
 }
 
 // ============================================
@@ -424,182 +327,97 @@ class CreativeOrchestrator {
 const orchestrator = new CreativeOrchestrator();
 
 app.get('/badge/:label/:message/:color?', async (req, res) => {
-  try {
-    const svg = await orchestrator.generate({
-      label: decodeURIComponent(req.params.label),
-      message: decodeURIComponent(req.params.message),
-      color: req.params.color?.replace('#', '') || req.query.color,
-      style: req.query.style,
-      animate: req.query.animate,
-      icon: req.query.icon,
-      textColor: req.query.textColor,
-      messageColor: req.query.messageColor
-    });
-    
-    res.setHeader('Content-Type', 'image/svg+xml; charset=utf-8');
-    res.setHeader('Cache-Control', 'public, max-age=7200');
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.send(svg);
-  } catch (error) {
-    res.status(400).setHeader('Content-Type', 'image/svg+xml').send(`
-      <svg xmlns="http://www.w3.org/2000/svg" width="120" height="20">
-        <rect width="120" height="20" fill="#e05d44"/>
-        <text x="60" y="14" text-anchor="middle" fill="#fff" 
-              font-family="Verdana" font-size="11">
-          Error: ${error.message.slice(0, 20)}
-        </text>
-      </svg>
-    `);
-  }
+  try {
+    const svg = await orchestrator.generate({
+      label: decodeURIComponent(req.params.label),
+      message: decodeURIComponent(req.params.message),
+      color: req.params.color,
+      queryColor: req.query.color, // Passe la couleur de la query séparément
+      style: req.query.style,
+      animate: req.query.animate,
+      icon: req.query.icon ? decodeURIComponent(req.query.icon) : null,
+      textColor: req.query.textColor,
+      messageColor: req.query.messageColor
+    });
+    
+    res.setHeader('Content-Type', 'image/svg+xml; charset=utf-8');
+    res.setHeader('Cache-Control', 'public, max-age=3600, s-maxage=3600');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.send(svg);
+  } catch (error) {
+    res.status(500).send('Internal Server Error');
+  }
 });
 
 app.get('/', (req, res) => {
-  const animations = CreativeAnimationsModule.getAvailableAnimations();
-  const styles = Object.keys(VisualStylesModule.MODERN_STYLES);
-  
-  res.send(`
+  res.send(`
 <!DOCTYPE html>
-<html>
+<html lang="fr">
 <head>
-  <title>Shields Creative</title>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { 
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: #fff;
-      padding: 40px 20px;
-      min-height: 100vh;
-    }
-    .container { max-width: 1200px; margin: 0 auto; }
-    h1 { font-size: 3.5em; margin-bottom: 10px; }
-    .tagline { font-size: 1.3em; opacity: 0.95; margin-bottom: 50px; }
-    .card { 
-      background: rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(20px);
-      border-radius: 20px;
-      padding: 40px;
-      margin-bottom: 30px;
-      border: 1px solid rgba(255, 255, 255, 0.2);
-    }
-    .grid { 
-      display: grid; 
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); 
-      gap: 20px; 
-      margin-top: 20px;
-    }
-    .example {
-      background: rgba(0, 0, 0, 0.2);
-      padding: 20px;
-      border-radius: 12px;
-      text-align: center;
-    }
-    .badge-preview { 
-      margin: 15px 0;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 60px;
-    }
-    code {
-      background: rgba(0, 0, 0, 0.3);
-      padding: 4px 10px;
-      border-radius: 6px;
-      font-size: 0.9em;
-      display: inline-block;
-      margin: 5px 0;
-    }
-    h2 { margin-bottom: 20px; font-size: 2em; }
-  </style>
+  <title>Shields Creative</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #111827; color: #e5e7eb; padding: 40px 20px; }
+    .container { max-width: 1200px; margin: 0 auto; }
+    h1 { font-size: 3em; margin-bottom: 10px; color: #fff; }
+    .tagline { font-size: 1.2em; color: #9ca3af; margin-bottom: 40px; }
+    .card { background: #1f2937; border-radius: 12px; padding: 30px; margin-bottom: 30px; border: 1px solid #374151; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-top: 20px; }
+    .example { background: #374151; padding: 20px; border-radius: 8px; text-align: center; }
+    .badge-preview { margin: 15px 0; display: flex; justify-content: center; align-items: center; min-height: 50px; }
+    code { background: #111827; padding: 4px 10px; border-radius: 6px; font-size: 0.85em; display: inline-block; margin-top: 10px; color: #a5b4fc; word-break: break-all;}
+    h2 { margin-bottom: 20px; font-size: 1.8em; color: #fff; }
+  </style>
 </head>
 <body>
-  <div class="container">
-    <h1>Shields Creative v1.2</h1>
-    <p class="tagline">Service de badges visuels avec animations</p>
-    
-    <div class="card">
-      <h2>Exemples</h2>
-      <div class="grid">
-        <div class="example">
-          <h3>Success Color</h3>
-          <div class="badge-preview">
-            <img src="/badge/Test/Success/success" alt="Success">
-          </div>
-          <code>/badge/Test/Success/success</code>
-        </div>
-        
-        <div class="example">
-          <h3>Warning Color</h3>
-          <div class="badge-preview">
-            <img src="/badge/Test/Warning/warning" alt="Warning">
-          </div>
-          <code>/badge/Test/Warning/warning</code>
-        </div>
-        
-        <div class="example">
-          <h3>Error Color</h3>
-          <div class="badge-preview">
-            <img src="/badge/Test/Error/error" alt="Error">
-          </div>
-          <code>/badge/Test/Error/error</code>
-        </div>
-        
-        <div class="example">
-          <h3>Neon Glow (Fixed)</h3>
-          <div class="badge-preview">
-            <img src="/badge/Status/Gold/gold?style=neon&animate=neon-glow" alt="Neon">
-          </div>
-          <code>/badge/Status/Gold/gold?style=neon&animate=neon-glow</code>
-        </div>
-        
-        <div class="example">
-          <h3>Rotate 3D (Enhanced)</h3>
-          <div class="badge-preview">
-            <img src="/badge/Spin/Around/purple?animate=rotate-3d" alt="3D">
-          </div>
-          <code>/badge/Spin/Around/purple?animate=rotate-3d</code>
-        </div>
-      </div>
-    </div>
-    
-    <div class="card">
-      <h2>Changelog v1.2</h2>
-      <ul style="line-height: 2;">
-        <li>✅ Fix couleurs nommées (success, warning, error, gold, etc.)</li>
-        <li>✅ Fix animation neon-glow (ajout classe .neon-rect)</li>
-        <li>✅ Amélioration rotate-3d (perspective augmentée)</li>
-        <li>✅ Module ColorModule dédié</li>
-      </ul>
-    </div>
-  </div>
+  <div class="container">
+    <h1>Shields Creative v1.3</h1>
+    <p class="tagline">Service de badges SVG stables avec emojis et animations.</p>
+    
+    <div class="card">
+      <h2>Exemples Corrigés</h2>
+      <div class="grid">
+        <div class="example">
+          <h3>Couleur Nommée (Success)</h3>
+          <div class="badge-preview"><img src="/badge/build/passing/success" alt="Success"></div>
+          <code>/badge/build/passing/success</code>
+        </div>
+        <div class="example">
+          <h3>Couleur Hexadécimale (sans #)</h3>
+          <div class="badge-preview"><img src="/badge/coverage/98%25/fbbf24" alt="Coverage"></div>
+          <code>/badge/coverage/98%25/fbbf24</code>
+        </div>
+        <div class="example">
+          <h3>Emoji dans le Label (URL-encodé)</h3>
+          <div class="badge-preview"><img src="/badge/Tests%20%E2%9C%85/124%20passed/success" alt="Emoji Test"></div>
+          <code>/badge/Tests%20%E2%9C%85/124%20passed/success</code>
+        </div>
+        <div class="example">
+          <h3>Icône Emoji (Query Param)</h3>
+          <div class="badge-preview"><img src="/badge/Likes/99k/pink?icon=%F0%9F%92%96" alt="Icon Emoji"></div>
+          <code>/badge/Likes/99k/pink?icon=%F0%9F%92%96</code>
+        </div>
+      </div>
+    </div>
+  </div>
 </body>
-</html>
-  `);
+</html>`);
 });
 
 app.get('/stats', (req, res) => {
-  res.json({
-    service: 'Shields Creative',
-    version: '1.2.0',
-    status: 'operational',
-    stats: orchestrator.getStats(),
-    availableStyles: Object.keys(VisualStylesModule.MODERN_STYLES),
-    availableAnimations: CreativeAnimationsModule.getAvailableAnimations()
-  });
-});
-
-app.get('/health', (req, res) => {
-  res.json({ 
-    status: 'healthy', 
-    uptime: process.uptime()
-  });
+  res.json({
+    service: 'Shields Creative',
+    version: '1.3.0',
+    status: 'operational',
+    stats: orchestrator.getStats(),
+    availableStyles: Object.keys(VisualStylesModule.MODERN_STYLES),
+    availableAnimations: CreativeAnimationsModule.getAvailableAnimations()
+  });
 });
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Shields Creative v1.2 on port ${PORT}`);
+  console.log(`Shields Creative v1.3 listening on port ${PORT}`);
 });
-
-module.exports = app;
