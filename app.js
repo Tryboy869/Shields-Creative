@@ -1,17 +1,65 @@
 // ============================================
 // SHIELDS CREATIVE - Badge Service Visuel
-// Version 1.1 - Corrections & Optimisations
+// Version 1.2 - Corrections Couleurs & Animations
 // ============================================
 
 const express = require('express');
 const app = express();
 
 // ============================================
+// MODULE : COULEURS (CORRIGÉ)
+// ============================================
+class ColorModule {
+  static NAMED_COLORS = {
+    // Couleurs statut
+    'success': '44cc11',
+    'warning': 'f59e0b', 
+    'error': 'ef4444',
+    'info': '3b82f6',
+    
+    // Couleurs standard
+    'brightgreen': '44cc11',
+    'green': '97CA00',
+    'yellowgreen': 'a4a61d',
+    'yellow': 'dfb317',
+    'orange': 'fe7d37',
+    'red': 'e05d44',
+    'blue': '007ec6',
+    'grey': '555',
+    'lightgrey': '9f9f9f',
+    'blueviolet': '8b5cf6',
+    'purple': '8b5cf6',
+    'pink': 'ec4899',
+    'gold': 'fbbf24'
+  };
+
+  static resolve(colorInput) {
+    if (!colorInput) return '8b5cf6';
+    
+    const normalized = colorInput.toLowerCase().replace('#', '');
+    
+    // Check named colors first
+    if (this.NAMED_COLORS[normalized]) {
+      return this.NAMED_COLORS[normalized];
+    }
+    
+    // Validate hex
+    if (/^[0-9a-f]{6}$/i.test(normalized)) {
+      return normalized;
+    }
+    if (/^[0-9a-f]{3}$/i.test(normalized)) {
+      return normalized.split('').map(c => c + c).join('');
+    }
+    
+    return '8b5cf6'; // Fallback
+  }
+}
+
+// ============================================
 // MODULE : STYLES VISUELS AVANCÉS
 // ============================================
 class VisualStylesModule {
   static MODERN_STYLES = {
-    // Style Glassmorphism
     glass: {
       height: 32,
       radius: 12,
@@ -22,17 +70,12 @@ class VisualStylesModule {
             <stop offset="0%" style="stop-color:rgba(255,255,255,0.25)"/>
             <stop offset="100%" style="stop-color:rgba(255,255,255,0.05)"/>
           </linearGradient>
-          <filter id="glass-blur">
-            <feGaussianBlur in="SourceGraphic" stdDeviation="2"/>
-          </filter>
         </defs>
         <rect width="${dims.totalWidth}" height="32" rx="12" fill="url(#glass-grad)" 
-              stroke="rgba(255,255,255,0.2)" stroke-width="1.5" 
-              style="backdrop-filter: blur(10px);"/>
+              stroke="rgba(255,255,255,0.2)" stroke-width="1.5"/>
       `
     },
 
-    // Style Neon
     neon: {
       height: 28,
       radius: 8,
@@ -47,13 +90,12 @@ class VisualStylesModule {
             </feMerge>
           </filter>
         </defs>
-        <rect width="${dims.totalWidth}" height="28" rx="8" 
-              fill="none" stroke="#${config.color}" stroke-width="2"
-              filter="url(#neon-glow)" class="neon-rect"/>
+        <rect class="neon-rect" width="${dims.totalWidth}" height="28" rx="8" 
+              fill="none" stroke="#${config.color}" stroke-width="2.5"
+              filter="url(#neon-glow)"/>
       `
     },
 
-    // Style 3D Depth
     depth: {
       height: 30,
       radius: 6,
@@ -66,12 +108,9 @@ class VisualStylesModule {
         </defs>
         <rect width="${dims.totalWidth}" height="30" rx="6" 
               fill="#${config.color}" filter="url(#depth-shadow)"/>
-        <rect width="${dims.totalWidth}" height="30" rx="6" 
-              fill="url(#depth-highlight)" opacity="0.3"/>
       `
     },
 
-    // Style Gradient Flow
     gradient: {
       height: 26,
       radius: 13,
@@ -91,7 +130,6 @@ class VisualStylesModule {
       `
     },
 
-    // Style Minimal Modern
     minimal: {
       height: 24,
       radius: 6,
@@ -119,7 +157,6 @@ class VisualStylesModule {
 // ============================================
 class CreativeAnimationsModule {
   static ANIMATIONS = {
-    // Animation Pulse avec Scale
     'pulse-scale': `
       @keyframes pulse-scale {
         0%, 100% { transform: scale(1); opacity: 1; }
@@ -128,20 +165,18 @@ class CreativeAnimationsModule {
       svg { animation: pulse-scale 2s ease-in-out infinite; }
     `,
 
-    // Animation Glow Intense
     'neon-glow': `
       @keyframes neon-pulse {
         0%, 100% { 
-          filter: drop-shadow(0 0 5px currentColor) drop-shadow(0 0 10px currentColor); 
+          filter: drop-shadow(0 0 8px currentColor) drop-shadow(0 0 15px currentColor); 
         }
         50% { 
-          filter: drop-shadow(0 0 10px currentColor) drop-shadow(0 0 20px currentColor); 
+          filter: drop-shadow(0 0 15px currentColor) drop-shadow(0 0 25px currentColor); 
         }
       }
       .neon-rect { animation: neon-pulse 1.5s ease-in-out infinite; }
     `,
 
-    // Animation Wave
     wave: `
       @keyframes wave {
         0% { transform: translateY(0px) rotate(0deg); }
@@ -153,29 +188,26 @@ class CreativeAnimationsModule {
       svg { animation: wave 3s ease-in-out infinite; }
     `,
 
-    // Animation Shimmer (CORRIGÉ - maintenant ça marche!)
     shimmer: `
       @keyframes shimmer-slide {
         0% { transform: translateX(-100%); opacity: 0.3; }
         50% { opacity: 1; }
         100% { transform: translateX(100%); opacity: 0.3; }
       }
-      .shimmer-rect {
-        animation: shimmer-slide 3s ease-in-out infinite;
-      }
+      .shimmer-rect { animation: shimmer-slide 3s ease-in-out infinite; }
     `,
 
-    // Animation Rotate 3D
     'rotate-3d': `
       @keyframes rotate-3d {
-        0% { transform: perspective(400px) rotateY(0deg); }
-        50% { transform: perspective(400px) rotateY(10deg); }
-        100% { transform: perspective(400px) rotateY(0deg); }
+        0%, 100% { transform: perspective(600px) rotateY(0deg); }
+        50% { transform: perspective(600px) rotateY(15deg); }
       }
-      svg { animation: rotate-3d 4s ease-in-out infinite; }
+      svg { 
+        animation: rotate-3d 4s ease-in-out infinite;
+        transform-style: preserve-3d;
+      }
     `,
 
-    // Animation Color Shift
     'color-shift': `
       @keyframes color-shift {
         0% { fill: #ef4444; }
@@ -188,7 +220,6 @@ class CreativeAnimationsModule {
       .animated-fill { animation: color-shift 5s linear infinite; }
     `,
 
-    // Animation Bounce Elastic
     'bounce-elastic': `
       @keyframes bounce-elastic {
         0%, 100% { transform: translateY(0) scale(1); }
@@ -199,7 +230,6 @@ class CreativeAnimationsModule {
       svg { animation: bounce-elastic 2s ease-in-out infinite; }
     `,
 
-    // Animation Glitch
     glitch: `
       @keyframes glitch {
         0%, 100% { transform: translate(0); }
@@ -211,7 +241,6 @@ class CreativeAnimationsModule {
       svg { animation: glitch 0.3s infinite; }
     `,
 
-    // Animation Breathing
     breathing: `
       @keyframes breathing {
         0%, 100% { transform: scale(1); opacity: 1; }
@@ -231,7 +260,7 @@ class CreativeAnimationsModule {
 }
 
 // ============================================
-// MODULE : GÉNÉRATEUR SVG CRÉATIF (AMÉLIORÉ)
+// MODULE : GÉNÉRATEUR SVG CRÉATIF
 // ============================================
 class CreativeSVGGenerator {
   static generate(config) {
@@ -282,7 +311,6 @@ class CreativeSVGGenerator {
   static _getShimmerOverlay(config, dimensions, style) {
     if (config.animate !== 'shimmer') return '';
     
-    // Effet shimmer corrigé avec élément SVG natif
     return `
       <rect class="shimmer-rect" 
             x="0" y="0" 
@@ -294,7 +322,6 @@ class CreativeSVGGenerator {
   }
 
   static _calculateDimensions(config) {
-    // Calcul amélioré pour meilleure précision
     const baseCharWidth = 7.5;
     const iconPadding = config.icon ? 35 : 20;
     
@@ -319,7 +346,7 @@ class CreativeSVGGenerator {
 }
 
 // ============================================
-// ORCHESTRATEUR SIMPLIFIÉ (AMÉLIORÉ)
+// ORCHESTRATEUR
 // ============================================
 class CreativeOrchestrator {
   constructor() {
@@ -342,7 +369,6 @@ class CreativeOrchestrator {
       this.cache.set(cacheKey, svg);
       this.stats.generated++;
       
-      // Limite cache à 200 entrées
       if (this.cache.size > 200) {
         const firstKey = this.cache.keys().next().value;
         this.cache.delete(firstKey);
@@ -356,11 +382,10 @@ class CreativeOrchestrator {
   }
 
   _parseParams(params) {
-    // Validation et nettoyage des paramètres
     return {
       label: this._sanitize(params.label) || 'Label',
       message: this._sanitize(params.message) || 'Message',
-      color: this._validateColor(params.color) || '8b5cf6',
+      color: ColorModule.resolve(params.color),
       style: this._validateStyle(params.style),
       animate: this._validateAnimation(params.animate),
       icon: params.icon || null,
@@ -371,30 +396,7 @@ class CreativeOrchestrator {
 
   _sanitize(text) {
     if (!text) return null;
-    // Enlève caractères dangereux, limite longueur
     return text.slice(0, 100).replace(/[<>]/g, '');
-  }
-
-  _validateColor(color) {
-    if (!color) return '8b5cf6';
-    
-    // Couleurs nommées
-    const namedColors = {
-      'success': '44cc11',
-      'warning': 'f59e0b',
-      'error': 'ef4444',
-      'info': '3b82f6'
-    };
-    
-    if (namedColors[color]) return namedColors[color];
-    
-    // Hex validation
-    const cleanColor = color.replace('#', '');
-    if (/^[0-9a-f]{6}$/i.test(cleanColor)) {
-      return cleanColor;
-    }
-    
-    return '8b5cf6'; // Fallback
   }
 
   _validateStyle(style) {
@@ -421,7 +423,6 @@ class CreativeOrchestrator {
 // ============================================
 const orchestrator = new CreativeOrchestrator();
 
-// Badge endpoint
 app.get('/badge/:label/:message/:color?', async (req, res) => {
   try {
     const svg = await orchestrator.generate({
@@ -452,7 +453,6 @@ app.get('/badge/:label/:message/:color?', async (req, res) => {
   }
 });
 
-// Playground/Documentation
 app.get('/', (req, res) => {
   const animations = CreativeAnimationsModule.getAvailableAnimations();
   const styles = Object.keys(VisualStylesModule.MODERN_STYLES);
@@ -461,7 +461,7 @@ app.get('/', (req, res) => {
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Shields Creative - Badge Visuel Service</title>
+  <title>Shields Creative</title>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
@@ -512,140 +512,65 @@ app.get('/', (req, res) => {
       margin: 5px 0;
     }
     h2 { margin-bottom: 20px; font-size: 2em; }
-    .feature-list {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 15px;
-      margin-top: 20px;
-    }
-    .feature {
-      background: rgba(255, 255, 255, 0.05);
-      padding: 15px;
-      border-radius: 10px;
-      text-align: center;
-    }
-    .update-badge {
-      display: inline-block;
-      background: #10b981;
-      color: white;
-      padding: 5px 15px;
-      border-radius: 20px;
-      font-size: 0.85em;
-      font-weight: 600;
-      margin-left: 10px;
-    }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>🎨 Shields Creative</h1>
-    <p class="tagline">
-      Service de badges visuels avec animations avancées - Alternative créative à Shields.io
-      <span class="update-badge">v1.1 - Shimmer Fix</span>
-    </p>
+    <h1>Shields Creative v1.2</h1>
+    <p class="tagline">Service de badges visuels avec animations</p>
     
     <div class="card">
-      <h2>Différenciateur Clé</h2>
-      <p style="font-size: 1.1em; line-height: 1.8;">
-        <strong>Shields.io</strong> = Badges informatifs statiques pour métriques techniques<br>
-        <strong>Shields Creative</strong> = Badges visuels animés pour impact et créativité
-      </p>
-    </div>
-
-    <div class="card">
-      <h2>Styles Disponibles</h2>
-      <div class="feature-list">
-        ${styles.map(s => `<div class="feature"><strong>${s}</strong></div>`).join('')}
-      </div>
-    </div>
-
-    <div class="card">
-      <h2>Animations Disponibles</h2>
-      <div class="feature-list">
-        ${animations.map(a => `<div class="feature">${a}</div>`).join('')}
-      </div>
-    </div>
-    
-    <div class="card">
-      <h2>Exemples Visuels</h2>
+      <h2>Exemples</h2>
       <div class="grid">
         <div class="example">
-          <h3>Glass + Pulse Scale</h3>
+          <h3>Success Color</h3>
           <div class="badge-preview">
-            <img src="/badge/Premium/Member/8b5cf6?style=glass&animate=pulse-scale" alt="Glass badge">
+            <img src="/badge/Test/Success/success" alt="Success">
           </div>
-          <code>/badge/Premium/Member/8b5cf6?style=glass&animate=pulse-scale</code>
+          <code>/badge/Test/Success/success</code>
         </div>
         
         <div class="example">
-          <h3>Neon + Neon Glow</h3>
+          <h3>Warning Color</h3>
           <div class="badge-preview">
-            <img src="/badge/Live/Streaming/ef4444?style=neon&animate=neon-glow" alt="Neon badge">
+            <img src="/badge/Test/Warning/warning" alt="Warning">
           </div>
-          <code>/badge/Live/Streaming/ef4444?style=neon&animate=neon-glow</code>
+          <code>/badge/Test/Warning/warning</code>
         </div>
         
         <div class="example">
-          <h3>Depth + Breathing</h3>
+          <h3>Error Color</h3>
           <div class="badge-preview">
-            <img src="/badge/Status/Active/10b981?style=depth&animate=breathing" alt="Depth badge">
+            <img src="/badge/Test/Error/error" alt="Error">
           </div>
-          <code>/badge/Status/Active/10b981?style=depth&animate=breathing</code>
+          <code>/badge/Test/Error/error</code>
         </div>
         
         <div class="example">
-          <h3>Gradient + Color Shift</h3>
+          <h3>Neon Glow (Fixed)</h3>
           <div class="badge-preview">
-            <img src="/badge/Rainbow/Mode/3b82f6?style=gradient&animate=color-shift" alt="Gradient badge">
+            <img src="/badge/Status/Gold/gold?style=neon&animate=neon-glow" alt="Neon">
           </div>
-          <code>/badge/Rainbow/Mode/3b82f6?style=gradient&animate=color-shift</code>
+          <code>/badge/Status/Gold/gold?style=neon&animate=neon-glow</code>
         </div>
         
         <div class="example">
-          <h3>Shimmer Effect (FIXED)</h3>
+          <h3>Rotate 3D (Enhanced)</h3>
           <div class="badge-preview">
-            <img src="/badge/Shiny/Effect/fbbf24?animate=shimmer" alt="Shimmer badge">
+            <img src="/badge/Spin/Around/purple?animate=rotate-3d" alt="3D">
           </div>
-          <code>/badge/Shiny/Effect/fbbf24?animate=shimmer</code>
-        </div>
-        
-        <div class="example">
-          <h3>Glass + Icon</h3>
-          <div class="badge-preview">
-            <img src="/badge/Rocket/Launch/f59e0b?style=glass&icon=🚀" alt="Icon badge">
-          </div>
-          <code>/badge/Rocket/Launch/f59e0b?style=glass&icon=🚀</code>
+          <code>/badge/Spin/Around/purple?animate=rotate-3d</code>
         </div>
       </div>
     </div>
     
     <div class="card">
-      <h2>Usage</h2>
-      <code style="display: block; text-align: center; font-size: 1.1em; padding: 15px;">
-        /badge/{label}/{message}/{color}?style={style}&animate={animation}&icon={emoji}
-      </code>
-    </div>
-
-    <div class="card">
-      <h2>Use Cases Idéaux</h2>
-      <ul style="line-height: 2.5; font-size: 1.1em;">
-        <li>✨ Portfolios créatifs</li>
-        <li>🎨 Landing pages modernes</li>
-        <li>🚀 Projets personnels/side-projects</li>
-        <li>💼 Présentations visuelles</li>
-        <li>🎮 Projets gaming/entertainment</li>
-        <li>📱 Apps avec strong visual identity</li>
-      </ul>
-    </div>
-    
-    <div class="card">
-      <h2>Changelog v1.1</h2>
-      <ul style="line-height: 2; font-size: 1em;">
-        <li>✅ Fix animation shimmer (maintenant fonctionnelle)</li>
-        <li>✅ Amélioration calcul dimensions</li>
-        <li>✅ Validation robuste des paramètres</li>
-        <li>✅ Support couleurs nommées (success, warning, error, info)</li>
-        <li>✅ Meilleure gestion erreurs</li>
+      <h2>Changelog v1.2</h2>
+      <ul style="line-height: 2;">
+        <li>✅ Fix couleurs nommées (success, warning, error, gold, etc.)</li>
+        <li>✅ Fix animation neon-glow (ajout classe .neon-rect)</li>
+        <li>✅ Amélioration rotate-3d (perspective augmentée)</li>
+        <li>✅ Module ColorModule dédié</li>
       </ul>
     </div>
   </div>
@@ -654,11 +579,10 @@ app.get('/', (req, res) => {
   `);
 });
 
-// Stats endpoint
 app.get('/stats', (req, res) => {
   res.json({
     service: 'Shields Creative',
-    version: '1.1.0',
+    version: '1.2.0',
     status: 'operational',
     stats: orchestrator.getStats(),
     availableStyles: Object.keys(VisualStylesModule.MODERN_STYLES),
@@ -666,20 +590,16 @@ app.get('/stats', (req, res) => {
   });
 });
 
-// Health check
 app.get('/health', (req, res) => {
   res.json({ 
     status: 'healthy', 
-    uptime: process.uptime(),
-    memory: process.memoryUsage()
+    uptime: process.uptime()
   });
 });
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`🎨 Shields Creative v1.1 running on port ${PORT}`);
-  console.log(`📊 Stats: http://localhost:${PORT}/stats`);
-  console.log(`💚 Health: http://localhost:${PORT}/health`);
+  console.log(`Shields Creative v1.2 on port ${PORT}`);
 });
 
 module.exports = app;
