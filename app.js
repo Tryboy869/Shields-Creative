@@ -1,10 +1,22 @@
 // ============================================
 // SHIELDS CREATIVE - Badge Service Visuel
-// Version 2.0 - Interface Complète Style Shields.io
+// Version 2.1 - FIXED pour GitHub README
 // ============================================
 
 const express = require('express');
 const app = express();
+
+// ============================================
+// SECURITY GATEWAY
+// ============================================
+class SecurityGateway {
+  static validate(text) {
+    if (!text) return '';
+    if (text.length > 150) throw new Error('Text too long');
+    if (/<script|javascript:/i.test(text)) throw new Error('XSS attempt');
+    return text;
+  }
+}
 
 // ============================================
 // MODULE : COULEURS
@@ -23,7 +35,9 @@ class ColorModule {
     const normalized = colorInput.toLowerCase().replace('#', '');
     if (this.NAMED_COLORS[normalized]) return this.NAMED_COLORS[normalized];
     if (/^[0-9a-f]{6}$/i.test(normalized)) return normalized;
-    if (/^[0-9a-f]{3}$/i.test(normalized)) return normalized.split('').map(c => c + c).join('');
+    if (/^[0-9a-f]{3}$/i.test(normalized)) {
+      return normalized.split('').map(c => c + c).join('');
+    }
     return '8b5cf6';
   }
 }
@@ -100,10 +114,6 @@ class CreativeAnimationsModule {
   static process(animationName) {
     return this.ANIMATIONS[animationName] || '';
   }
-
-  static getAvailableAnimations() {
-    return Object.keys(this.ANIMATIONS);
-  }
 }
 
 // ============================================
@@ -159,14 +169,21 @@ class CreativeOrchestrator {
     try {
       const config = this._parseParams(params);
       const cacheKey = JSON.stringify(config);
+      
       if (this.cache.has(cacheKey)) {
         this.stats.cached++;
         return this.cache.get(cacheKey);
       }
+      
       const svg = CreativeSVGGenerator.generate(config);
       this.cache.set(cacheKey, svg);
       this.stats.generated++;
-      if (this.cache.size > 200) this.cache.delete(this.cache.keys().next().value);
+      
+      if (this.cache.size > 200) {
+        const firstKey = this.cache.keys().next().value;
+        this.cache.delete(firstKey);
+      }
+      
       return svg;
     } catch (error) {
       this.stats.errors++;
@@ -176,28 +193,19 @@ class CreativeOrchestrator {
 
   _parseParams(params) {
     return {
-      label: this._sanitize(params.label) || 'Label',
-      message: this._sanitize(params.message) || 'Message',
-      color: ColorModule.resolve(params.color || params.queryColor),
+      label: SecurityGateway.validate(params.label) || 'Label',
+      message: SecurityGateway.validate(params.message) || 'Message',
+      color: ColorModule.resolve(params.color),
       style: this._validateStyle(params.style),
-      animate: this._validateAnimation(params.animate),
+      animate: params.animate || null,
       icon: params.icon || null,
       textColor: params.textColor || '#fff',
       messageColor: params.messageColor || '#fff'
     };
   }
 
-  _sanitize(text) {
-    if (!text) return null;
-    return text.slice(0, 100).replace(/[<>&"']/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&apos;'}[c]));
-  }
-
   _validateStyle(style) {
     return ['glass','neon','depth','gradient','minimal'].includes(style) ? style : 'glass';
-  }
-
-  _validateAnimation(animation) {
-    return CreativeAnimationsModule.getAvailableAnimations().includes(animation) ? animation : null;
   }
 
   getStats() {
@@ -210,19 +218,76 @@ class CreativeOrchestrator {
 // ============================================
 const orchestrator = new CreativeOrchestrator();
 
-app.get('/badge/:label/:message/:color?', async (req, res) => {
+// ROUTE PRINCIPALE : Compatible GitHub (format label-message-color)
+app.get('/badge/:badgeContent*', async (req, res) => {
   try {
+    // Parse le format shields.io : label-message-color
+    const badgeContent = req.path.replace('/badge/', '');
+    const parts = badgeContent.split('-');
+    
+    // Extraction intelligente (dernière partie = couleur si valide)
+    let color = req.query.color;
+    let message, label;
+    
+    if (parts.length >= 3) {
+      // Vérifier si dernière partie est une couleur
+      const lastPart = parts[parts.length - 1];
+      const isColor = ColorModule.NAMED_COLORS[lastPart.toLowerCase()] || /^[0-9a-f]{3,6}$/i.test(lastPart);
+      
+      if (isColor) {
+        color = lastPart;
+        message = parts[parts.length - 2];
+        label = parts.slice(0, -2).join(' ');
+      } else {
+        message = parts[parts.length - 1];
+        label = parts.slice(0, -1).join(' ');
+      }
+    } else if (parts.length === 2) {
+      label = parts[0];
+      message = parts[1];
+    } else {
+      label = badgeContent;
+      message = 'badge';
+    }
+    
     const svg = await orchestrator.generate({
-      label: decodeURIComponent(req.params.label),
-      message: decodeURIComponent(req.params.message),
-      color: req.params.color,
-      queryColor: req.query.color,
+      label: decodeURIComponent(label.replace(/_/g, ' ')),
+      message: decodeURIComponent(message.replace(/_/g, ' ')),
+      color: color,
       style: req.query.style,
       animate: req.query.animate,
       icon: req.query.icon ? decodeURIComponent(req.query.icon) : null
     });
+    
     res.setHeader('Content-Type', 'image/svg+xml; charset=utf-8');
-    res.setHeader('Cache-Control', 'public, max-age=7200');
+    res.setHeader('Cache-Control', 'public, max-age=86400, s-maxage=604800');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.send(svg);
+    
+  } catch (error) {
+    console.error('Badge generation error:', error);
+    res.status(400).setHeader('Content-Type', 'image/svg+xml').send(
+      `<svg xmlns="http://www.w3.org/2000/svg" width="120" height="20"><rect fill="#e05d44" width="120" height="20"/><text x="60" y="14" text-anchor="middle" fill="#fff" font-size="11">Error</text></svg>`
+    );
+  }
+});
+
+// Route alternative : Format slash (compatibilité)
+app.get('/b/:label/:message/:color?', async (req, res) => {
+  try {
+    const svg = await orchestrator.generate({
+      label: decodeURIComponent(req.params.label),
+      message: decodeURIComponent(req.params.message),
+      color: req.params.color || req.query.color,
+      style: req.query.style,
+      animate: req.query.animate,
+      icon: req.query.icon ? decodeURIComponent(req.query.icon) : null
+    });
+    
+    res.setHeader('Content-Type', 'image/svg+xml; charset=utf-8');
+    res.setHeader('Cache-Control', 'public, max-age=86400');
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.send(svg);
   } catch (error) {
@@ -230,9 +295,7 @@ app.get('/badge/:label/:message/:color?', async (req, res) => {
   }
 });
 
-// ============================================
-// HOMEPAGE - STYLE SHIELDS.IO
-// ============================================
+// Homepage
 app.get('/', (req, res) => {
   res.send(`
 <!DOCTYPE html>
@@ -257,8 +320,6 @@ app.get('/', (req, res) => {
       color: var(--text);
       line-height: 1.6;
     }
-    
-    /* Header */
     .header {
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       padding: 60px 20px;
@@ -266,98 +327,29 @@ app.get('/', (req, res) => {
     }
     .header h1 { font-size: 3em; margin-bottom: 10px; color: #fff; }
     .header p { font-size: 1.3em; color: rgba(255,255,255,0.9); margin-bottom: 30px; }
-    .header .demo-badges { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }
-    
-    /* Container */
     .container { max-width: 1200px; margin: 0 auto; padding: 40px 20px; }
-    
-    /* Section */
     .section { margin-bottom: 60px; }
     .section h2 { font-size: 2em; margin-bottom: 20px; color: var(--primary); }
-    .section p { color: var(--text-muted); margin-bottom: 20px; }
-    
-    /* Badge Builder */
-    .builder {
+    .card {
       background: var(--card);
       border: 1px solid var(--border);
       border-radius: 12px;
       padding: 30px;
-      margin-bottom: 40px;
+      margin-bottom: 20px;
     }
-    .builder h3 { margin-bottom: 20px; }
-    .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
-    .form-group { display: flex; flex-direction: column; }
-    .form-group label { font-size: 0.9em; color: var(--text-muted); margin-bottom: 5px; }
-    .form-group input, .form-group select {
-      padding: 10px;
-      border: 1px solid var(--border);
-      border-radius: 6px;
+    .examples { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+    .example { background: var(--bg); padding: 20px; border-radius: 8px; }
+    .example img { margin: 10px 0; }
+    .code { 
       background: var(--bg);
-      color: var(--text);
-      font-size: 1em;
-    }
-    .preview { 
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 30px;
-      text-align: center;
-      margin: 20px 0;
-    }
-    .code-output {
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: 6px;
       padding: 15px;
-      font-family: 'Courier New', monospace;
+      border-radius: 6px;
+      font-family: monospace;
       font-size: 0.9em;
       color: #a5b4fc;
       overflow-x: auto;
-      margin-top: 20px;
-    }
-    .btn {
-      background: var(--primary);
-      color: #fff;
-      padding: 12px 24px;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 1em;
       margin-top: 10px;
     }
-    .btn:hover { opacity: 0.9; }
-    
-    /* Examples Grid */
-    .examples-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 20px;
-    }
-    .example-card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 25px;
-    }
-    .example-card h4 { margin-bottom: 15px; color: var(--primary); }
-    .example-preview {
-      background: var(--bg);
-      padding: 20px;
-      border-radius: 8px;
-      text-align: center;
-      margin: 15px 0;
-    }
-    .example-code {
-      background: var(--bg);
-      padding: 10px;
-      border-radius: 6px;
-      font-family: monospace;
-      font-size: 0.85em;
-      color: #a5b4fc;
-      word-break: break-all;
-    }
-    
-    /* Footer */
     .footer {
       background: var(--card);
       border-top: 1px solid var(--border);
@@ -365,213 +357,94 @@ app.get('/', (req, res) => {
       text-align: center;
       margin-top: 60px;
     }
-    .footer a { color: var(--primary); text-decoration: none; }
   </style>
 </head>
 <body>
-  <!-- Header -->
   <div class="header">
     <h1>🎨 Shields Creative</h1>
-    <p>Modern animated badges with stunning visual styles</p>
-    <div class="demo-badges">
-      <img src="/badge/Style-Glass-8b5cf6?style=glass" alt="Glass">
+    <p>Modern animated badges for your projects</p>
+    <div>
+      <img src="/badge/Status-Online-success?style=glass" alt="Online">
       <img src="/badge/Style-Neon-ef4444?style=neon&animate=neon-glow" alt="Neon">
-      <img src="/badge/Style-Depth-10b981?style=depth" alt="Depth">
-      <img src="/badge/Style-Gradient-3b82f6?style=gradient" alt="Gradient">
-      <img src="/badge/Style-Minimal-6366f1?style=minimal" alt="Minimal">
+      <img src="/badge/Premium-Active-8b5cf6?style=gradient" alt="Premium">
     </div>
   </div>
 
   <div class="container">
-    <!-- Badge Builder -->
     <div class="section">
-      <h2>Badge Builder</h2>
-      <p>Create your custom animated badge</p>
-      
-      <div class="builder">
-        <h3>Configure Your Badge</h3>
-        <div class="form-grid">
-          <div class="form-group">
-            <label>Label</label>
-            <input type="text" id="label" value="Build" placeholder="Left text">
-          </div>
-          <div class="form-group">
-            <label>Message</label>
-            <input type="text" id="message" value="Passing" placeholder="Right text">
-          </div>
-          <div class="form-group">
-            <label>Color</label>
-            <input type="text" id="color" value="success" placeholder="success, 8b5cf6, etc.">
-          </div>
-          <div class="form-group">
-            <label>Style</label>
-            <select id="style">
-              <option value="glass">Glass</option>
-              <option value="neon">Neon</option>
-              <option value="depth">Depth</option>
-              <option value="gradient">Gradient</option>
-              <option value="minimal">Minimal</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Animation</label>
-            <select id="animate">
-              <option value="">None</option>
-              <option value="pulse-scale">Pulse Scale</option>
-              <option value="neon-glow">Neon Glow</option>
-              <option value="wave">Wave</option>
-              <option value="shimmer">Shimmer</option>
-              <option value="breathing">Breathing</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Icon (emoji)</label>
-            <input type="text" id="icon" placeholder="🚀" maxlength="2">
-          </div>
+      <h2>GitHub README Usage</h2>
+      <div class="card">
+        <h3>Format 1 : Shields.io Compatible</h3>
+        <div class="code">![Badge](https://your-domain.vercel.app/badge/Label-Message-Color?style=glass)</div>
+        <div class="example">
+          <img src="/badge/Build-Passing-success?style=glass" alt="Build">
         </div>
         
-        <div class="preview">
-          <img id="preview-img" src="/badge/Build/Passing/success?style=glass" alt="Preview">
+        <h3 style="margin-top: 30px;">Format 2 : Alternative (slash)</h3>
+        <div class="code">![Badge](https://your-domain.vercel.app/b/Label/Message/Color?style=neon)</div>
+        <div class="example">
+          <img src="/b/Deploy/Success/green?style=neon" alt="Deploy">
         </div>
-        
-        <div class="code-output" id="code-output">
-![Badge](https://shields-2-0.vercel.app/badge/Build/Passing/success?style=glass)
-        </div>
-        
-        <button class="btn" onclick="copyCode()">📋 Copy Markdown</button>
       </div>
     </div>
 
-    <!-- Examples -->
     <div class="section">
       <h2>Examples</h2>
-      <p>Ready-to-use badge examples</p>
-      
-      <div class="examples-grid">
-        <div class="example-card">
-          <h4>Portfolio Hero</h4>
-          <div class="example-preview">
-            <img src="/badge/Welcome/Portfolio-8b5cf6?style=glass&animate=pulse-scale" alt="Hero">
-          </div>
-          <div class="example-code">/badge/Welcome/Portfolio/8b5cf6?style=glass&animate=pulse-scale</div>
+      <div class="examples">
+        <div class="example">
+          <h4>Glass Style</h4>
+          <img src="/badge/Status-Active-success?style=glass" alt="Glass">
+          <div class="code">/badge/Status-Active-success?style=glass</div>
         </div>
-        
-        <div class="example-card">
-          <h4>Status Badge</h4>
-          <div class="example-preview">
-            <img src="/badge/Build/Passing/success?style=minimal" alt="Status">
-          </div>
-          <div class="example-code">/badge/Build/Passing/success?style=minimal</div>
+        <div class="example">
+          <h4>Neon Animated</h4>
+          <img src="/badge/Live-Streaming-error?style=neon&animate=neon-glow" alt="Live">
+          <div class="code">/badge/Live-Streaming-error?style=neon&animate=neon-glow</div>
         </div>
-        
-        <div class="example-card">
-          <h4>Social Proof</h4>
-          <div class="example-preview">
-            <img src="/badge/⭐%20Stars/2.5K/gold?style=depth&animate=shimmer" alt="Stars">
-          </div>
-          <div class="example-code">/badge/⭐%20Stars/2.5K/gold?style=depth&animate=shimmer</div>
-        </div>
-        
-        <div class="example-card">
-          <h4>Tech Stack</h4>
-          <div class="example-preview">
-            <img src="/badge/TypeScript/Ready/007ACC?style=glass" alt="TS">
-          </div>
-          <div class="example-code">/badge/TypeScript/Ready/007ACC?style=glass</div>
-        </div>
-        
-        <div class="example-card">
-          <h4>Neon Effect</h4>
-          <div class="example-preview">
-            <img src="/badge/Live/Streaming/ef4444?style=neon&animate=neon-glow" alt="Live">
-          </div>
-          <div class="example-code">/badge/Live/Streaming/ef4444?style=neon&animate=neon-glow</div>
-        </div>
-        
-        <div class="example-card">
-          <h4>Gradient Flow</h4>
-          <div class="example-preview">
-            <img src="/badge/Premium/Member/8b5cf6?style=gradient&animate=breathing" alt="Premium">
-          </div>
-          <div class="example-code">/badge/Premium/Member/8b5cf6?style=gradient&animate=breathing</div>
+        <div class="example">
+          <h4>Gradient</h4>
+          <img src="/badge/Premium-Member-purple?style=gradient" alt="Premium">
+          <div class="code">/badge/Premium-Member-purple?style=gradient</div>
         </div>
       </div>
     </div>
 
-    <!-- Documentation -->
     <div class="section">
-      <h2>Usage</h2>
-      <div class="builder">
-        <h3>URL Format</h3>
-        <div class="code-output">
-https://shields-2-0.vercel.app/badge/{label}/{message}/{color}?style={style}&animate={animation}
-        </div>
-        
-        <h3 style="margin-top: 30px;">Named Colors</h3>
-        <p>success, warning, error, info, gold, purple, pink, blue, green, red, orange, yellow</p>
-        
-        <h3 style="margin-top: 30px;">Styles</h3>
-        <p>glass, neon, depth, gradient, minimal</p>
-        
-        <h3 style="margin-top: 30px;">Animations</h3>
-        <p>pulse-scale, neon-glow, wave, shimmer, breathing</p>
+      <h2>Parameters</h2>
+      <div class="card">
+        <p><strong>Styles:</strong> glass, neon, depth, gradient, minimal</p>
+        <p><strong>Animations:</strong> pulse-scale, neon-glow, wave, shimmer, breathing</p>
+        <p><strong>Colors:</strong> success, warning, error, info, gold, purple, pink, blue, green, red</p>
       </div>
     </div>
   </div>
 
-  <!-- Footer -->
   <div class="footer">
-    <p>Made with ❤️ by <a href="https://github.com/Tryboy869" target="_blank">Tryboy869</a></p>
-    <p><a href="https://github.com/Tryboy869/shields-creative" target="_blank">GitHub</a> • <a href="/stats">Stats</a></p>
+    <p>Made with ❤️ by <a href="https://github.com/Tryboy869" style="color: var(--primary);">Tryboy869</a></p>
   </div>
-
-  <script>
-    const inputs = ['label', 'message', 'color', 'style', 'animate', 'icon'];
-    inputs.forEach(id => {
-      document.getElementById(id).addEventListener('input', updateBadge);
-    });
-
-    function updateBadge() {
-      const label = encodeURIComponent(document.getElementById('label').value || 'Label');
-      const message = encodeURIComponent(document.getElementById('message').value || 'Message');
-      const color = document.getElementById('color').value || 'success';
-      const style = document.getElementById('style').value;
-      const animate = document.getElementById('animate').value;
-      const icon = document.getElementById('icon').value;
-      
-      let url = \`/badge/\${label}/\${message}/\${color}?style=\${style}\`;
-      if (animate) url += \`&animate=\${animate}\`;
-      if (icon) url += \`&icon=\${encodeURIComponent(icon)}\`;
-      
-      document.getElementById('preview-img').src = url;
-      document.getElementById('code-output').textContent = \`![Badge](https://shields-2-0.vercel.app\${url})\`;
-    }
-
-    function copyCode() {
-      const code = document.getElementById('code-output').textContent;
-      navigator.clipboard.writeText(code).then(() => {
-        alert('✅ Copied to clipboard!');
-      });
-    }
-  </script>
 </body>
 </html>
   `);
 });
 
+// Stats endpoint
 app.get('/stats', (req, res) => {
   res.json({
     service: 'Shields Creative',
-    version: '2.0.0',
-    stats: orchestrator.getStats(),
-    availableStyles: Object.keys(VisualStylesModule.MODERN_STYLES),
-    availableAnimations: CreativeAnimationsModule.getAvailableAnimations()
+    version: '2.1.0',
+    stats: orchestrator.getStats()
   });
+});
+
+// Health check
+app.get('/health', (req, res) => {
+  res.json({ status: 'healthy', uptime: process.uptime() });
 });
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log('Shields Creative v2.0 running on port ' + PORT);
+  console.log(`✅ Shields Creative v2.1 running on port ${PORT}`);
+  console.log(`📖 Visit http://localhost:${PORT} for documentation`);
 });
 
 module.exports = app;
