@@ -570,6 +570,8 @@ app.get('/stats', (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(\`🎨 Shields Creative v2.0 on port \${PORT}\`));
+app.listen(PORT, () => {
+  console.log('Shields Creative v2.0 running on port ' + PORT);
+});
 
 module.exports = app;
