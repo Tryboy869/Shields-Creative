@@ -1,36 +1,70 @@
 {
   "name": "shields-creative",
-  "version": "1.0.0",
-  "description": "Service de badges visuels animés - Alternative créative à Shields.io",
+  "version": "2.1.0",
+  "description": "Architecture Modulaire Mono-Fichier - Modern Animated Badge Service for GitHub",
   "main": "app.js",
+  "type": "commonjs",
   "scripts": {
     "start": "node app.js",
     "dev": "nodemon app.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node test.js",
+    "validate": "node -c app.js",
+    "deploy": "vercel --prod",
+    "deploy:preview": "vercel"
   },
   "keywords": [
     "badges",
-    "animated-badges",
+    "shields",
     "svg",
-    "creative",
-    "visual-design",
-    "glassmorphism",
-    "neon-effects",
-    "modern-badges"
+    "animated",
+    "github",
+    "readme",
+    "visual",
+    "creative"
   ],
-  "author": "NEXUS AXION",
+  "author": "Tryboy869",
   "license": "MIT",
-  "dependencies": {
-    "express": "^4.19.2"
-  },
-  "devDependencies": {
-    "nodemon": "^3.1.0"
-  },
-  "engines": {
-    "node": ">=18.0.0"
-  },
   "repository": {
     "type": "git",
-    "url": "https://github.com/your-username/shields-creative.git"
+    "url": "https://github.com/Tryboy869/shields-creative.git"
+  },
+  "homepage": "https://github.com/Tryboy869/shields-creative#readme",
+  "bugs": {
+    "url": "https://github.com/Tryboy869/shields-creative/issues"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  },
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
+  },
+  "config": {
+    "server": {
+      "port": 3000,
+      "host": "0.0.0.0"
+    },
+    "security": {
+      "max_text_length": 150,
+      "rate_limit": 1000,
+      "cache_ttl": 86400
+    },
+    "modules": {
+      "color": {
+        "default": "8b5cf6",
+        "named_colors": ["success", "warning", "error", "info", "gold", "purple", "pink"]
+      },
+      "styles": {
+        "available": ["glass", "neon", "depth", "gradient", "minimal"],
+        "default": "glass"
+      },
+      "animations": {
+        "available": ["pulse-scale", "neon-glow", "wave", "shimmer", "breathing"],
+        "default": null
+      }
+    }
   }
 }
